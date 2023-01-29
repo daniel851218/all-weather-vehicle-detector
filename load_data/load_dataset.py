@@ -7,7 +7,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from img_aug import ImgAugTransform
+from load_data.img_aug import ImgAugTransform
+from config.load_data_cfg import data_cfg
 
 class Base_Dataset(Dataset):
     def __init__(self):
@@ -41,6 +42,8 @@ class Base_Dataset(Dataset):
     def pad_image(self, img, img_w, img_h):
         '''
         img: Tensor (channel, h, w)
+        img_w: int
+        img_h: int
         '''
         new_img = torch.zeros((3, img_h, img_w), dtype=img.dtype) + 0.5
 
@@ -56,6 +59,9 @@ class Base_Dataset(Dataset):
         return new_img, (x1, y1)
     
     def resize_bbx(self, json_data, ratio, delta):
+        '''
+        json_data: dict
+        '''
         num_obj = len(json_data)
         boxes = torch.zeros((num_obj, 4), dtype=torch.float)
         classes = torch.zeros((num_obj), dtype=torch.int)
@@ -72,3 +78,54 @@ class Base_Dataset(Dataset):
     @staticmethod
     def collate_fn(batch):
         return tuple(zip(*batch))
+    
+# ----------------------------------------------------------------------------------------------------
+
+class SHIFT_Dataset(Base_Dataset):
+    def __init__(self, is_train=True):
+        super(SHIFT_Dataset, self).__init__()
+        self.is_train = is_train
+        self.file_list = self.get_file_list(data_cfg.shift_txt_file_train) if is_train else self.get_file_list(data_cfg.shift_txt_file_val)
+
+    def __len__(self):
+        return len(self.file_list)
+    
+    def __getitem__(self, idx):
+        img_file = self.file_list[idx].strip()
+        json_file = img_file.replace("jpg", "json")
+        
+        if not (os.path.isfile(img_file) and os.path.isfile(json_file)):
+            raise ValueError(f"File does not exist.")
+        
+        with open(json_file, "r") as file:
+            json_data = json.loads(file.read())
+
+        img = Image.open(img_file)
+        img, ratio = self.resize_img(img, data_cfg.img_w, data_cfg.img_h)
+        img = self.img_aug_transform(img) if self.is_train else self.to_tensor(img)
+        img = self.normalize(img)
+        img, delta = self.pad_image(img, data_cfg.img_w, data_cfg.img_h)
+        boxes, obj_classes = self.resize_bbx(json_data, ratio, delta)
+
+        daytime_class = 1 if "daytime" in img_file.split(os.sep)[-3].split("_") else 0
+        weather_class = 1 if "normal" in img_file.split(os.sep)[-3].split("_") else 0
+        daytime_class = torch.tensor((daytime_class))
+        weather_class = torch.tensor((weather_class))
+
+        img = img
+        target = {
+            "boxes": boxes, 
+            "labels": obj_classes, 
+            "daytime_class": daytime_class, 
+            "weather_class": weather_class, 
+            }
+
+        return img, target
+    
+# ----------------------------------------------------------------------------------------------------
+
+
+
+
+
+
