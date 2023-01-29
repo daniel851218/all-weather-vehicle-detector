@@ -146,7 +146,7 @@ class BDD_Dataset(Base_Dataset):
         img = Image.open(img_file)
         img, ratio = self.resize_img(img, data_cfg.img_w, data_cfg.img_h)
         img = self.img_aug_transform(img) if self.is_train else self.to_tensor(img)
-        # img = self.normalize(img)
+        img = self.normalize(img)
         img, delta = self.pad_image(img, data_cfg.img_w, data_cfg.img_h)
         boxes, obj_classes = self.resize_bbx(json_data, ratio, delta)
 
@@ -165,3 +165,36 @@ class BDD_Dataset(Base_Dataset):
         return img, target
 
 # ----------------------------------------------------------------------------------------------------
+
+class Driving_Video_Dataset(Base_Dataset):
+    def __init__(self):
+        super(Driving_Video_Dataset, self).__init__()
+        self.file_list = self.get_file_list(data_cfg.driving_video_txt_file)
+
+    def __len__(self):
+        return len(self.file_list)
+    
+    def __getitem__(self, idx):
+        img_file = self.file_list[idx].strip()
+
+        if not os.path.isfile(img_file):
+            raise ValueError(f"File does not exist.")
+        
+        img = Image.open(img_file)
+        img, ratio = self.resize_img(img, data_cfg.img_w, data_cfg.img_h)
+
+        img = self.img_aug_transform(img)
+        img = self.normalize(img)
+        img, delta = self.pad_image(img, data_cfg.img_w, data_cfg.img_h)
+
+        daytime_class = 1 if "daytime" in img_file.split(os.sep)[-3].split("_") else 0
+        weather_class = 1 if "normal" in img_file.split(os.sep)[-3].split("_") else 0
+        daytime_class = torch.tensor((daytime_class))
+        weather_class = torch.tensor((weather_class))
+
+        target = {
+            "daytime_class": daytime_class, 
+            "weather_class": weather_class, 
+            }
+        
+        return img, target
