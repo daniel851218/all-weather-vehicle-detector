@@ -59,3 +59,33 @@ class Faster_RCNN(nn.Module):
         if self.training:
             return losses
         return detections
+    
+    def save_model(self, epoch, ckpt_dir):
+        print("Saving Model ...")
+        weight_dir = "weights"
+        if not os.path.isdir(os.path.join(ckpt_dir, weight_dir)):
+            os.mkdir(os.path.join(ckpt_dir, weight_dir))
+
+        torch.save(self.backbone.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_backbone.pth"))
+        torch.save(self.rpn.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_rpn.pth"))
+        torch.save(self.roi_align.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_roi.pth"))
+        torch.save(self.detect_head.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_detect_head.pth"))
+
+    def load_model(self, model_dir, epoch):
+        print("Loading Model ...")
+        assert len(model_dir) > 0
+
+        backbone_weight = os.path.join(model_dir, f"{epoch}_backbone.pth")
+        rpn_weight = os.path.join(model_dir, f"{epoch}_rpn.pth")
+        roi_weight = os.path.join(model_dir, f"{epoch}_roi.pth")
+        detect_head_weight = os.path.join(model_dir, f"{epoch}_detect_head.pth")
+
+        print(f"{'Backbone Weight: ':>25s}" + backbone_weight)
+        print(f"{'RPN Weight: ':>25s}" + rpn_weight)
+        print(f"{'ROI Weight: ':>25s}" + roi_weight)
+        print(f"{'Detection Head Weight: ':>25s}" + detect_head_weight + "\n")
+
+        self.backbone.load_state_dict(torch.load(backbone_weight))
+        self.rpn.load_state_dict(torch.load(rpn_weight))
+        self.roi_align.load_state_dict(torch.load(roi_weight))
+        self.detect_head.load_state_dict(torch.load(detect_head_weight))
