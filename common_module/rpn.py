@@ -114,8 +114,8 @@ class RPN(nn.Module):
         # proposals: torch.Tensor, shape = (batch_size, 66330, 4)
 
         # remove small bboxes, nms process, get post_nms_top_n target
-        boxes, scores = self.filter_proposals(proposals, fg_bg_scores, [(cfg.img_h, cfg.img_w)]*num_imgs, num_anchors_per_level)
-        # boxes: list
+        proposals, scores = self.filter_proposals(proposals, fg_bg_scores, [(cfg.img_h, cfg.img_w)]*num_imgs, num_anchors_per_level)
+        # proposals: list
         # scores: list
 
         losses = {}
@@ -128,7 +128,7 @@ class RPN(nn.Module):
             loss_rpn_score, loss_rpn_box_reg = self.compute_loss(fg_bg_scores, pred_bbox_deltas, labels, reg_targets)
             losses = {"loss_rpn_score": loss_rpn_score, "loss_rpn_box_reg": loss_rpn_box_reg}
         
-        return boxes, losses
+        return proposals, losses
         
     def get_top_n_idx(self, fg_bg_scores, num_anchors_per_level):
         '''
