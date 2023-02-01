@@ -38,7 +38,7 @@ class RoI_Align(nn.Module):
         instance_features = self.roi_align(features, proposals, img_shapes)
         # instance_features: torch.Tensor, shape = (box_batch_size_per_img*batch_size, backbone.out_channels, roi_align_out_size)
         
-        return instance_features, labels, reg_targets
+        return instance_features, labels, reg_targets, proposals
     
     def assign_targets_to_proposals(self, proposals, gt_boxes, gt_labels):
         """
