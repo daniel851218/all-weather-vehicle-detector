@@ -36,7 +36,7 @@ class RoI_Align(nn.Module):
             labels, reg_targets = None, None
 
         instance_features = self.roi_align(features, proposals, img_shapes)
-        # instance_features: torch.Tensor, shape = (box_batch_size_per_img*batch_size, 512, 7, 7) 
+        # instance_features: torch.Tensor, shape = (box_batch_size_per_img*batch_size, backbone.out_channels, roi_align_out_size)
         
         return instance_features, labels, reg_targets
     
