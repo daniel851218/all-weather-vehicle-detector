@@ -90,3 +90,38 @@ class Ins_Level_Classifier(nn.Module):
         ins_level_score = self.sigmoid(features)
         ins_level_score = torch.mean(ins_level_score, dim=[1, 2, 3]).unsqueeze(1)
         return ins_level_score
+
+# ----------------------------------------------------------------------------------------------------
+
+class Daytime_Classifier(nn.Module):
+    def __init__(self, in_channels):
+        super(Daytime_Classifier, self).__init__()
+        self.img_level_classifier = Img_Level_Classifier(in_channels)
+        self.ins_level_classifier = Ins_Level_Classifier(in_channels)
+
+        self.bce_loss_fn = nn.BCELoss()
+        self.mse_loss_fn = nn.MSELoss()
+
+    def forward(self, img_features, ins_features, targets):
+        img_level_scores = self.img_level_classifier(img_features)
+        ins_level_scores = self.ins_level_classifier(ins_features)
+
+        losses = {}
+        if self.training:
+            assert targets is not None
+            labels = torch.stack([t["daytime_class"] for t in targets], dim=0).unsqueeze(1)
+            loss_img_score, loss_ins_score, loss_consistency = self.compute_loss(img_level_scores, ins_level_scores, labels)
+            losses = {
+                "loss_daytime_img_score": loss_img_score, 
+                "loss_daytime_ins_score": loss_ins_score, 
+                "loss_daytime_consistency": loss_consistency
+            }
+            
+        return losses
+
+    def compute_loss(self, img_scores, ins_scores, labels):
+        loss_img_score = self.bce_loss_fn(img_scores, labels)
+        loss_ins_score = self.bce_loss_fn(ins_scores, labels)
+        loss_consistency = self.mse_loss_fn(img_scores, ins_scores)
+
+        return loss_img_score, loss_ins_score, loss_consistency
