@@ -40,10 +40,10 @@ class Img_Level_Classifier(nn.Module):
         self.conv2 = Conv2D_ReLU(in_channels//2, in_channels//4, kernel_size=3, stride=1, padding=1)
 
     def forward(self, features):
-        f_p2 = features["p2"]
-        f_p3 = features["p3"]
-        f_p4 = features["p4"]
-        f_p5 = features["p5"]
+        f_p2 = self.grl(features["p2"])
+        f_p3 = self.grl(features["p3"])
+        f_p4 = self.grl(features["p4"])
+        f_p5 = self.grl(features["p5"])
         
         f_p2 = self.conv2(self.conv1(f_p2))
         f_p2 = torch.mean(f_p2, dim=1)
