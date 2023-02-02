@@ -70,9 +70,9 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
 
 def evaluate(model, data_loader):
     model.eval()
-    class_TP_FP = [torch.tensor([]) for _ in range((cfg.num_class - 1))]
-    class_score = [torch.tensor([]) for _ in range((cfg.num_class - 1))]
-    num_gt_boxes = torch.zeros((cfg.num_class-1))
+    class_TP_FP = [torch.tensor([]) for _ in range((cfg.num_classes - 1))]
+    class_score = [torch.tensor([]) for _ in range((cfg.num_classes - 1))]
+    num_gt_boxes = torch.zeros((cfg.num_classes-1))
 
     with torch.no_grad():
         for imgs, targets in tqdm(data_loader):
@@ -85,7 +85,7 @@ def evaluate(model, data_loader):
 
             batch_class_TP_FP, batch_class_score, batch_class_num_gt = get_class_TP_FP(targets, detections, 0.5)
 
-            for c in range(cfg.num_class-1):
+            for c in range(cfg.num_classes-1):
                 class_TP_FP[c] = torch.cat([class_TP_FP[c].to(torch.bool), batch_class_TP_FP[c].to(torch.bool)])
                 class_score[c] = torch.cat([class_score[c].to(torch.float), batch_class_score[c].to(torch.float)])
             num_gt_boxes += batch_class_num_gt
