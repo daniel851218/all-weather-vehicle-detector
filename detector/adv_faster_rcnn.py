@@ -96,6 +96,8 @@ class Adversarial_Faster_RCNN(nn.Module):
         torch.save(self.rpn.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_rpn.pth"))
         torch.save(self.roi_align.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_roi.pth"))
         torch.save(self.detect_head.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_detect_head.pth"))
+        torch.save(self.daytime_classifier.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_daytime_classifier.pth"))
+        torch.save(self.weather_classifier.state_dict(), os.path.join(ckpt_dir, weight_dir, f"{epoch}_weather_classifier.pth"))
 
     def load_model(self, model_dir, epoch):
         print("Loading Model ...")
@@ -105,13 +107,19 @@ class Adversarial_Faster_RCNN(nn.Module):
         rpn_weight = os.path.join(model_dir, f"{epoch}_rpn.pth")
         roi_weight = os.path.join(model_dir, f"{epoch}_roi.pth")
         detect_head_weight = os.path.join(model_dir, f"{epoch}_detect_head.pth")
+        daytime_classifier_weight = os.path.join(model_dir, f"{epoch}_daytime_classifier.pth")
+        weather_classifier_weight = os.path.join(model_dir, f"{epoch}_weather_classifier.pth")
 
-        print(f"{'Backbone Weight: ':>25s}" + backbone_weight)
-        print(f"{'RPN Weight: ':>25s}" + rpn_weight)
-        print(f"{'ROI Weight: ':>25s}" + roi_weight)
-        print(f"{'Detection Head Weight: ':>25s}" + detect_head_weight + "\n")
+        print(f"{'Backbone Weight: ':>40s}" + backbone_weight)
+        print(f"{'RPN Weight: ':>40s}" + rpn_weight)
+        print(f"{'ROI Weight: ':>40s}" + roi_weight)
+        print(f"{'Detection Head Weight: ':>40s}" + detect_head_weight)
+        print(f"{'Daytime Classifier Weight: ':>40s}" + daytime_classifier_weight)
+        print(f"{'Weather Classifier Weight: ':>40s}" + weather_classifier_weight + "\n")
 
         self.backbone.load_state_dict(torch.load(backbone_weight))
         self.rpn.load_state_dict(torch.load(rpn_weight))
         self.roi_align.load_state_dict(torch.load(roi_weight))
         self.detect_head.load_state_dict(torch.load(detect_head_weight))
+        self.daytime_classifier.load_state_dict(torch.load(daytime_classifier_weight))
+        self.weather_classifier.load_state_dict(torch.load(weather_classifier_weight))
