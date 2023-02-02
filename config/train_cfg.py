@@ -1,10 +1,29 @@
 import os
 
 class Config():
-    device = "cpu"
+    dataset = "SHIFT"
+    ckpt_dir = os.path.join("runs", dataset, "faster_rcnn")
 
+    # use pre-trained weight or not
+    is_pre_train = False
+    pre_train_model_epoch = None
+    pre_train_model_path = None
+    
+    device = "cuda"
+    batch_size = 8
+    start_epoch = 0
+    epochs = 100
+    max_patience = 10
 
+    # optimizer parameters
+    lr = 5e-3
+    momentum = 0.9
+    weight_decay = 5e-4
 
+    # lr_scheduler
+    lr_gamma = 0.5
+    lr_dec_step_size = 1
+    lr_min = 5e-7
 
     # target objects
     num_classes = 6 + 1       # foreground + background
