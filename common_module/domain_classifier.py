@@ -109,7 +109,7 @@ class Daytime_Classifier(nn.Module):
         losses = {}
         if self.training:
             assert targets is not None
-            labels = torch.stack([t["daytime_class"] for t in targets], dim=0).unsqueeze(1)
+            labels = torch.stack([t["daytime_class"] for t in targets], dim=0).to(torch.float).unsqueeze(1)
             loss_img_score, loss_ins_score, loss_consistency = self.compute_loss(img_level_scores, ins_level_scores, labels)
             losses = {
                 "loss_daytime_img_score": loss_img_score, 
@@ -144,7 +144,7 @@ class Weather_Classifier(nn.Module):
         losses = {}
         if self.training:
             assert targets is not None
-            labels = torch.stack([t["weather_class"] for t in targets], dim=0).unsqueeze(1)
+            labels = torch.stack([t["weather_class"] for t in targets], dim=0).to(torch.float).unsqueeze(1)
             loss_img_score, loss_ins_score, loss_consistency = self.compute_loss(img_level_scores, ins_level_scores, labels)
             losses = {
                 "loss_weather_img_score": loss_img_score, 
