@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from config.train_cfg import cfg
-from common_module.conv2d import Conv2D_ReLU, Conv2D
+from common_module.conv2d import Conv2D_ReLU
 
 class Gradient_Reversal(torch.autograd.Function):
     def __init__(self):
@@ -67,3 +67,26 @@ class Img_Level_Classifier(nn.Module):
 
         img_level_score = (f_p2_score + f_p3_score + f_p4_score + f_p5_score) / 4.0
         return img_level_score
+
+# ----------------------------------------------------------------------------------------------------
+
+class Ins_Level_Classifier(nn.Module):
+    def __init__(self, in_channels):
+        super(Ins_Level_Classifier, self).__init__()
+        self.grl = GRL()
+        self.sigmoid = nn.Sigmoid()
+
+        self.conv1 = Conv2D_ReLU(in_channels, in_channels//2, kernel_size=3, stride=1, padding=1)
+        self.conv2 = Conv2D_ReLU(in_channels//2, in_channels//4, kernel_size=3, stride=1, padding=1)
+
+    def forward(self, features):
+        features = self.grl(features)
+
+        features = self.conv2(self.conv1(features))
+        features = torch.split(features, cfg.box_batch_size_per_img, dim=0)
+        features = torch.stack(features, dim=0)
+        features = torch.mean(features, dim=2)
+        
+        ins_level_score = self.sigmoid(features)
+        ins_level_score = torch.mean(ins_level_score, dim=[1, 2, 3]).unsqueeze(1)
+        return ins_level_score
