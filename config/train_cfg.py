@@ -6,8 +6,15 @@ class Config():
 
 
 
-
+    # target objects
     num_classes = 6 + 1       # foreground + background
+    obj_classes = {           # 0 for background
+        1: "Car",
+        2: "Truck",
+        3: "Pedestrian",
+        4: "Bus",
+        5: "Bicycle",
+        6: "Motorcycle"}
 
     # image size
     img_w = 640

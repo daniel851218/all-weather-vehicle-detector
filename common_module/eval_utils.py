@@ -102,6 +102,6 @@ def calc_mAP(class_TP_FP, class_score, num_gt_boxes, is_plot=False):
         R_each_class.append(recall[f1_max_idx])
 
         if is_plot:
-            plot_PR_curve(precision, recall, cfg.obj_class[c+1])
+            plot_PR_curve(precision, recall, cfg.obj_classes[c+1])
 
     return AP_each_class, P_each_class, R_each_class
