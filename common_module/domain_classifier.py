@@ -36,17 +36,8 @@ class Img_Level_Classifier(nn.Module):
         self.grl = GRL()
         self.sigmoid = nn.Sigmoid()
 
-        self.conv1_p2 = Conv2D_ReLU(in_channels, in_channels//2, kernel_size=3, stride=1, padding=1)
-        self.conv2_p2 = Conv2D_ReLU(in_channels//2, in_channels//4, kernel_size=3, stride=1, padding=1)
-
-        self.conv1_p3 = Conv2D_ReLU(in_channels, in_channels//2, kernel_size=3, stride=1, padding=1)
-        self.conv2_p3 = Conv2D_ReLU(in_channels//2, in_channels//2, kernel_size=3, stride=1, padding=1)
-
-        self.conv1_p4 = Conv2D_ReLU(in_channels, in_channels//2, kernel_size=3, stride=1, padding=1)
-        self.conv2_p4 = Conv2D_ReLU(in_channels//2, in_channels//2, kernel_size=3, stride=1, padding=1)
-
-        self.conv1_p5 = Conv2D_ReLU(in_channels, in_channels//2, kernel_size=3, stride=1, padding=1)
-        self.conv2_p5 = Conv2D_ReLU(in_channels//2, in_channels//2, kernel_size=3, stride=1, padding=1)
+        self.conv1 = Conv2D_ReLU(in_channels, in_channels//2, kernel_size=3, stride=1, padding=1)
+        self.conv2 = Conv2D_ReLU(in_channels//2, in_channels//4, kernel_size=3, stride=1, padding=1)
 
     def forward(self, features):
         f_p2 = features["p2"]
@@ -54,22 +45,22 @@ class Img_Level_Classifier(nn.Module):
         f_p4 = features["p4"]
         f_p5 = features["p5"]
         
-        f_p2 = self.conv2_p2(self.conv1_p2(f_p2))
+        f_p2 = self.conv2(self.conv1(f_p2))
         f_p2 = torch.mean(f_p2, dim=1)
         f_p2 = self.sigmoid(f_p2)
         f_p2_score = torch.mean(f_p2, dim=[1, 2]).unsqueeze(1)
 
-        f_p3 = self.conv2_p3(self.conv1_p3(f_p3))
+        f_p3 = self.conv2(self.conv1(f_p3))
         f_p3 = torch.mean(f_p3, dim=1)
         f_p3 = self.sigmoid(f_p3)
         f_p3_score = torch.mean(f_p3, dim=[1, 2]).unsqueeze(1)
 
-        f_p4 = self.conv2_p4(self.conv1_p4(f_p4))
+        f_p4 = self.conv2(self.conv1(f_p4))
         f_p4 = torch.mean(f_p4, dim=1)
         f_p4 = self.sigmoid(f_p4)
         f_p4_score = torch.mean(f_p4, dim=[1, 2]).unsqueeze(1)
 
-        f_p5 = self.conv2_p5(self.conv1_p5(f_p5))
+        f_p5 = self.conv2(self.conv1(f_p5))
         f_p5 = torch.mean(f_p5, dim=1)
         f_p5 = self.sigmoid(f_p5)
         f_p5_score = torch.mean(f_p5, dim=[1, 2]).unsqueeze(1)
