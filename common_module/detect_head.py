@@ -41,10 +41,7 @@ class Regression_Head(nn.Module):
 class Detect_Head(nn.Module):
     def __init__(self, feature_channels):
         super(Detect_Head, self).__init__()
-        self.embedeed_layer = nn.Sequential(
-            Residual_BottleNeck(in_features=feature_channels, width=256, out_features=1024, kernel_size=3, stride=2, padding=1, downsample=nn.Conv2d(in_channels=feature_channels, out_channels=1024, kernel_size=1, stride=2)),
-            Residual_BottleNeck(in_features=1024, width=256, out_features=1024, kernel_size=3, stride=1, padding=1)
-        )
+        self.embedeed_layer = Residual_BottleNeck(in_features=feature_channels, width=256, out_features=1024, kernel_size=3, stride=2, padding=1, downsample=nn.Conv2d(in_channels=feature_channels, out_channels=1024, kernel_size=1, stride=2))
         self.flatten = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten()
