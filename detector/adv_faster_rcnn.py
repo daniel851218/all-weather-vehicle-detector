@@ -7,6 +7,7 @@ from common_module.resnet import ResNet50_FPN
 from common_module.rpn import RPN
 from common_module.roi import RoI_Align
 from common_module.detect_head import Detect_Head
+from common_module.domain_classifier import Daytime_Classifier, Weather_Classifier
 
 class Adversarial_Faster_RCNN(nn.Module):
     def __init__(self):
@@ -16,8 +17,8 @@ class Adversarial_Faster_RCNN(nn.Module):
         self.roi_align = RoI_Align()
         self.detect_head = Detect_Head(feature_channels=self.backbone.out_channels)
 
-        self.daytime_classifier = None
-        self.weather_classifier = None
+        self.daytime_classifier = Daytime_Classifier(self.backbone.out_channels)
+        self.weather_classifier = Weather_Classifier(self.backbone.out_channels)
 
     def forward(self, imgs, targets):
         img_features = self.backbone(imgs)
@@ -58,11 +59,24 @@ class Adversarial_Faster_RCNN(nn.Module):
         # roi_losses: dict
         #             keys: "loss_roi_cls", "loss_roi_box_reg"
 
+        daytime_adv_losses = self.daytime_classifier(img_features, ins_features, targets)
+        weather_adv_losses = self.weather_classifier(img_features, ins_features, targets)
+        # daytime_adv_losses: dict
+        #                     keys: "loss_daytime_img_score", "loss_daytime_ins_score", "loss_daytime_consistency"
+        #
+        # weather_adv_losses: dict
+        #                     keys: "loss_weather_img_score", "loss_weather_ins_score", "loss_weather_consistency"
+
         losses = {}
         if self.training:
-            losses["loss_total"] = rpn_losses["loss_rpn_score"] + rpn_losses["loss_rpn_box_reg"] + roi_losses["loss_roi_cls"] + roi_losses["loss_roi_box_reg"]
+            losses["loss_total"] = rpn_losses["loss_rpn_score"] + rpn_losses["loss_rpn_box_reg"] + \
+                                   roi_losses["loss_roi_cls"] + roi_losses["loss_roi_box_reg"] + \
+                                   cfg.lambda_adv_daytime * (daytime_adv_losses["loss_daytime_img_score"] + daytime_adv_losses["loss_daytime_ins_score"] + daytime_adv_losses["loss_daytime_consistency"]) + \
+                                   cfg.lambda_adv_weather * (weather_adv_losses["loss_weather_img_score"] + weather_adv_losses["loss_weather_ins_score"] + weather_adv_losses["loss_weather_consistency"])
             losses.update(rpn_losses)
             losses.update(roi_losses)
+            losses.update(daytime_adv_losses)
+            losses.update(weather_adv_losses)
         
         return self.eager_outputs(losses, detection_result)
     
