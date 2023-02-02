@@ -31,7 +31,6 @@ class Faster_RCNN(nn.Module):
         #            shape of each element: (post_nms_top_n, 4) = (2000, 4)
         #
         # rpn_losses: dict
-        #             len: batch_size
         #             keys: "loss_rpn_score", "loss_rpn_box_reg"
 
         instance_features, labels, reg_targets, proposals = self.roi_align(features, proposals, [(cfg.img_h, cfg.img_w)]*len(proposals), targets)
@@ -47,8 +46,18 @@ class Faster_RCNN(nn.Module):
         #              shape of each element: (box_batch_size_per_img, 4) = (512, 4)
         
         embedded_ins_features,cls_scores, bbox_reg, roi_losses, detection_result = self.detect_head(instance_features, labels, reg_targets, proposals)
+        # embedded_ins_features: torch.Tensor, shape = (box_batch_size_per_img*batch_size, 1024, 7, 7)
+        # 
+        # cls_scores: torch.Tensor, shape = (box_batch_size_per_img*batch_size, num_classes)
+        # 
+        # bbox_reg: torch.Tensor, shape = (box_batch_size_per_img*batch_size, num_classes*4)
+        # 
+        # roi_losses: dict
+        #             keys: "loss_roi_cls", "loss_roi_box_reg"
         
-        losses = {}
+        losses = {
+            "loss_total": rpn_losses["loss_rpn_score"] + rpn_losses["loss_rpn_score"] + roi_losses["loss_roi_cls"] + roi_losses["loss_roi_box_reg"]
+        }
         losses.update(rpn_losses)
         losses.update(roi_losses)
         
