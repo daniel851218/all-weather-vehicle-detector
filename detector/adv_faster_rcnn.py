@@ -57,12 +57,12 @@ class Adversarial_Faster_RCNN(nn.Module):
         # 
         # roi_losses: dict
         #             keys: "loss_roi_cls", "loss_roi_box_reg"
-        
-        losses = {
-            "loss_total": rpn_losses["loss_rpn_score"] + rpn_losses["loss_rpn_score"] + roi_losses["loss_roi_cls"] + roi_losses["loss_roi_box_reg"]
-        }
-        losses.update(rpn_losses)
-        losses.update(roi_losses)
+
+        losses = {}
+        if self.training:
+            losses["loss_total"] = rpn_losses["loss_rpn_score"] + rpn_losses["loss_rpn_box_reg"] + roi_losses["loss_roi_cls"] + roi_losses["loss_roi_box_reg"]
+            losses.update(rpn_losses)
+            losses.update(roi_losses)
         
         return self.eager_outputs(losses, detection_result)
     
