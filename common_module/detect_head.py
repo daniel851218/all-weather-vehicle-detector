@@ -41,7 +41,7 @@ class Regression_Head(nn.Module):
 class Detect_Head(nn.Module):
     def __init__(self, feature_channels):
         super(Detect_Head, self).__init__()
-        self.embedeed_layer = Residual_BottleNeck(in_features=feature_channels, width=256, out_features=1024, kernel_size=3, stride=2, padding=1, downsample=nn.Conv2d(in_channels=feature_channels, out_channels=1024, kernel_size=1, stride=2))
+        self.embedded_layer = Residual_BottleNeck(in_features=feature_channels, width=256, out_features=1024, kernel_size=3, stride=2, padding=1, downsample=nn.Conv2d(in_channels=feature_channels, out_channels=1024, kernel_size=1, stride=2))
         self.flatten = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten()
@@ -54,7 +54,7 @@ class Detect_Head(nn.Module):
         self.box_coder = boxes_utils.BoxCoder(weights=(10.0, 10.0, 5.0, 5.0))
 
     def forward(self, instance_features, labels, reg_targets, proposals):
-        embedded_ins_features = self.embedeed_layer(instance_features)
+        embedded_ins_features = self.embedded_layer(instance_features)
         instance_features = self.flatten(embedded_ins_features)
         
         cls_scores = self.cls_head(instance_features)
