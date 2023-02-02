@@ -39,6 +39,10 @@ class Config():
     img_w = 640
     img_h = 416
 
+    # adversarial training parameters
+    lambda_adv_daytime = 0.1
+    lambda_adv_weather = 0.15
+
     # anchor parameters
     anchor_size = [32.0, 64.0, 128.0, 256.0]
     aspect_ratio = [0.5, 1.0, 2.0]
