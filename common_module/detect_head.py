@@ -9,33 +9,21 @@ from common_module.resnet import Residual_BottleNeck
 class Classification_Head(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(Classification_Head, self).__init__()
-        self.fc1 = nn.Linear(in_channels, in_channels//2)
-        self.bn1 = nn.BatchNorm1d(in_channels//2)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Linear(in_channels//2, num_classes)
+        self.fc1 = nn.Linear(in_channels, num_classes)
         
     def forward(self, x):
         x = self.fc1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
         
         return x
     
 class Regression_Head(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(Regression_Head, self).__init__()
-        self.fc1 = nn.Linear(in_channels, in_channels//2)
-        self.bn1 = nn.BatchNorm1d(in_channels//2)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Linear(in_channels//2, num_classes * 4)
+        self.fc1 = nn.Linear(in_channels, num_classes * 4)
 
     def forward(self, x):
         x = self.fc1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-
+        
         return x
 
 class Detect_Head(nn.Module):
