@@ -59,8 +59,9 @@ class Adversarial_Faster_RCNN(nn.Module):
         # roi_losses: dict
         #             keys: "loss_roi_cls", "loss_roi_box_reg"
 
-        daytime_adv_losses = self.daytime_classifier(img_features, ins_features, targets)
-        weather_adv_losses = self.weather_classifier(img_features, ins_features, targets)
+        if self.training:
+            daytime_adv_losses = self.daytime_classifier(img_features, ins_features, targets)
+            weather_adv_losses = self.weather_classifier(img_features, ins_features, targets)
         # daytime_adv_losses: dict
         #                     keys: "loss_daytime_img_score", "loss_daytime_ins_score", "loss_daytime_consistency"
         #
