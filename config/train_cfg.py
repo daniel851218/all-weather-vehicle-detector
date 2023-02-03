@@ -2,7 +2,7 @@ import os
 
 class Config():
     dataset = "SHIFT"
-    ckpt_dir = os.path.join("runs", dataset, "faster_rcnn")
+    ckpt_dir = os.path.join("runs", dataset, "adv_faster_rcnn")
 
     # use pre-trained weight or not
     is_pre_train = False
@@ -18,7 +18,7 @@ class Config():
     # optimizer parameters
     lr = 5e-3
     momentum = 0.9
-    weight_decay = 5e-4
+    weight_decay = 1e-3
 
     # lr_scheduler
     lr_gamma = 0.5
