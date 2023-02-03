@@ -59,8 +59,8 @@ class Detect_Head(nn.Module):
         
         cls_scores = self.cls_head(instance_features)
         bbox_reg = self.reg_head(instance_features)
-        # cls_scores: torch.Tensor, shape = (1024, num_classes) = (1024, 7)
-        # bbox_reg: torch.Tensor, shape = (1024, num_classes * 4) = (1024, 28)
+        # cls_scores: torch.Tensor, shape = (batch_size*box_batch_size_per_img, num_classes) = (batch_size*box_batch_size_per_img, 7)
+        # bbox_reg: torch.Tensor, shape = (batch_size*box_batch_size_per_img, num_classes * 4) = (batch_size*box_batch_size_per_img, 28)
         
         losses = {}
         detection_result = torch.jit.annotate(List[Dict[str, torch.Tensor]], [])
