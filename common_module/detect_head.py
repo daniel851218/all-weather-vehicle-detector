@@ -4,7 +4,7 @@ from torch.jit.annotations import List, Dict
 
 from config.train_cfg import cfg
 from common_module import boxes_utils
-from common_module.resnet import Residual_BottleNeck
+from common_module.resnet import Residual_Basic
 
 class Classification_Head(nn.Module):
     def __init__(self, in_channels, num_classes):
@@ -29,7 +29,7 @@ class Regression_Head(nn.Module):
 class Detect_Head(nn.Module):
     def __init__(self, feature_channels):
         super(Detect_Head, self).__init__()
-        self.embedded_layer = Residual_BottleNeck(in_features=feature_channels, width=256, out_features=1024, kernel_size=3, stride=2, padding=1, downsample=nn.Conv2d(in_channels=feature_channels, out_channels=1024, kernel_size=1, stride=2))
+        self.embedded_layer = Residual_Basic(in_features=feature_channels, out_features=1024, kernel_size=3, stride=1, padding=1, downsample=nn.Conv2d(in_channels=feature_channels, out_channels=1024, kernel_size=1, stride=1))
         self.flatten = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten()
