@@ -1,7 +1,6 @@
 import os
 import json
 import torch
-import numpy as np
 
 from PIL import Image
 from torch.utils.data import Dataset
@@ -266,4 +265,57 @@ class Mixed_Labeled_Dataset(Base_Dataset):
             }
 
         return shift_img, shift_target, bdd_img, bdd_target
+
+# ----------------------------------------------------------------------------------------------------
+
+class Mixed_UnLabeled_Dataset(Base_Dataset):
+    def __init__(self):
+        super(Mixed_Labeled_Dataset, self).__init__()
+        self.shift_file_list = self.get_file_list(data_cfg.shift_txt_file_train)
+        self.driving_video_file_list = self.get_file_list(data_cfg.driving_video_txt_file)
+
+    def __len__(self):
+        return min(len(self.shift_file_list), len(self.driving_video_file_list))
+    
+    def __getitem__(self, idx):
+        shift_img_file = self.shift_file_list[idx].strip()
+        if os.path.isfile(shift_img_file):
+            raise ValueError(f"File does not exist.")
+
+        driving_video_img_file = self.driving_video_file_list[idx].strip()
+        if not os.path.isfile(driving_video_img_file):
+            raise ValueError(f"File does not exist.")
+
+        shift_img = Image.open(shift_img_file)
+        shift_img, shift_ratio = self.resize_img(shift_img, data_cfg.img_w, data_cfg.img_h)
+        shift_img = self.img_aug_transform(shift_img)
+        shift_img = self.normalize(shift_img)
+        shift_img, shift_delta = self.pad_image(shift_img, data_cfg.img_w, data_cfg.img_h)
         
+        driving_video_img = Image.open(driving_video_img_file)
+        driving_video_img, driving_video_ratio = self.resize_img(driving_video_img, data_cfg.img_w, data_cfg.img_h)
+        driving_video_img = self.img_aug_transform(driving_video_img)
+        driving_video_img = self.normalize(driving_video_img)
+        driving_video_img, driving_video_delta = self.pad_image(driving_video_img, data_cfg.img_w, data_cfg.img_h)
+
+        shift_daytime_class = 1 if "daytime" in shift_img_file.split(os.sep)[-2].split("_") else 0
+        shift_weather_class = 1 if "normal" in shift_img_file.split(os.sep)[-2].split("_") else 0
+        shift_daytime_class = torch.tensor((shift_daytime_class))
+        shift_weather_class = torch.tensor((shift_weather_class))
+
+        driving_video_daytime_class = 1 if "daytime" in driving_video_img_file.split(os.sep)[-2].split("_") else 0
+        driving_video_weather_class = 1 if "normal" in driving_video_img_file.split(os.sep)[-2].split("_") else 0
+        driving_video_daytime_class = torch.tensor((driving_video_daytime_class))
+        driving_video_weather_class = torch.tensor((driving_video_weather_class))
+
+        shift_target = {
+            "daytime_class": shift_daytime_class, 
+            "weather_class": shift_weather_class
+            }
+        
+        driving_video_target = {
+            "daytime_class": driving_video_daytime_class, 
+            "weather_class": driving_video_weather_class
+            }
+        
+        return shift_img, shift_target, driving_video_img, driving_video_target
