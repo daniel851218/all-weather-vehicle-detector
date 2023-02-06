@@ -61,7 +61,7 @@ class Config():
     box_nms_thresh = 0.5
     box_detections_per_img = 100
 
-    roi_align_out_size = [14, 14]
+    roi_align_out_size = [7, 7]
     roi_sample_ratio = 2
 
 cfg = Config()
