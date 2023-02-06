@@ -109,7 +109,7 @@ class RPN(nn.Module):
         # pred_bbox_deltas: torch.Tensor, shape = (batch_size*66330, 4)
 
         num_imgs = len(imgs)
-        proposals = self.box_coder.decode(pred_bbox_deltas, anchors)
+        proposals = self.box_coder.decode(pred_bbox_deltas.detach(), anchors)
         proposals = proposals.reshape(num_imgs, -1, 4)
         # proposals: torch.Tensor, shape = (batch_size, 66330, 4)
 
