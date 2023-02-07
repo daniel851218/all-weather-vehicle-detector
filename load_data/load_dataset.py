@@ -279,7 +279,7 @@ class Mixed_UnLabeled_Dataset(Base_Dataset):
     
     def __getitem__(self, idx):
         shift_img_file = self.shift_file_list[idx].strip()
-        if os.path.isfile(shift_img_file):
+        if not os.path.isfile(shift_img_file):
             raise ValueError(f"File does not exist.")
 
         driving_video_img_file = self.driving_video_file_list[idx].strip()
