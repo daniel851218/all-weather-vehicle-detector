@@ -270,7 +270,7 @@ class Mixed_Labeled_Dataset(Base_Dataset):
 
 class Mixed_UnLabeled_Dataset(Base_Dataset):
     def __init__(self):
-        super(Mixed_Labeled_Dataset, self).__init__()
+        super(Mixed_UnLabeled_Dataset, self).__init__()
         self.shift_file_list = self.get_file_list(data_cfg.shift_txt_file_train)
         self.driving_video_file_list = self.get_file_list(data_cfg.driving_video_txt_file)
 
