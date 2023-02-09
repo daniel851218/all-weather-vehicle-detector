@@ -34,8 +34,8 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
             pos_idx, neg_idx = self.divide_pos_neg_set(src_embedded_ins_features_p.detach(), tgt_embedded_ins_features_p.detach())
             feature_consistency_loss = self.compute_feature_consistency_loss(src_embedded_ins_features_a.detach(), tgt_embedded_ins_features_a, pos_idx, neg_idx)
             
-            losses["primary"] = src_losses
-            losses["auxiliary"] = tgt_losses
+            losses["loss_primary"] = src_losses
+            losses["loss_auxiliary"] = tgt_losses
             losses["loss_feature_consistency"] = feature_consistency_loss
         else:
             tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
