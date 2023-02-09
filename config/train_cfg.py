@@ -1,8 +1,8 @@
 import os
 
 class Config():
-    dataset = "SHIFT"
-    ckpt_dir = os.path.join("runs", dataset, "adv_faster_rcnn")
+    dataset = None
+    ckpt_dir = os.path.join("runs", dataset, "ssl_faster_rcnn")
 
     # use pre-trained weight or not
     is_pre_train = False
@@ -10,15 +10,15 @@ class Config():
     pre_train_model_path = None
     
     device = "cuda"
-    batch_size = 8
+    batch_size = 4
     start_epoch = 0
     epochs = 100
     max_patience = 10
 
     # optimizer parameters
-    lr = 5e-3
+    lr = 1e-3
     momentum = 0.9
-    weight_decay = 1e-3
+    weight_decay = 5e-4
 
     # lr_scheduler
     lr_gamma = 0.5
