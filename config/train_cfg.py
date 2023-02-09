@@ -1,7 +1,7 @@
 import os
 
 class Config():
-    dataset = None
+    dataset = "Mixed"
     ckpt_dir = os.path.join("runs", dataset, "ssl_faster_rcnn")
 
     # use pre-trained weight or not
@@ -45,6 +45,9 @@ class Config():
 
     # semi-supervised training parameters
     cos_similarity_top_n_ratio = 0.25
+    lambda_cls_consistency = 1.0
+    lambda_reg_consistency = 1.0
+    lambda_feature_consistency = 1.0
 
     # anchor parameters
     anchor_size = [32.0, 64.0, 128.0, 256.0]
