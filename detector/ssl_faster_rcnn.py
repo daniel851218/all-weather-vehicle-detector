@@ -26,13 +26,21 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
         self.reg_loss_fn = nn.SmoothL1Loss()
 
     def forward(self, src_imgs, src_targets, tgt_imgs, tgt_targets):
-        src_embedded_ins_features_p, src_embedded_ins_features_a, src_losses, src_detection_result = self.domain_forward(src_imgs, src_targets, domain="source")
-        tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
+        losses = {}
+        if self.training:
+            src_embedded_ins_features_p, src_embedded_ins_features_a, src_losses, src_detection_result = self.domain_forward(src_imgs, src_targets, domain="source")
+            tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
+
+            pos_idx, neg_idx = self.divide_pos_neg_set(src_embedded_ins_features_p.detach(), tgt_embedded_ins_features_p.detach())
+            feature_consistency_loss = self.compute_feature_consistency_loss(src_embedded_ins_features_a.detach(), tgt_embedded_ins_features_a, pos_idx, neg_idx)
+            
+            losses["primary"] = src_losses
+            losses["auxiliary"] = tgt_losses
+            losses["loss_feature_consistency"] = feature_consistency_loss
+        else:
+            tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
         
-        pos_idx, neg_idx = self.divide_pos_neg_set(src_embedded_ins_features_p.detach(), tgt_embedded_ins_features_p.detach())
-        feature_consistency_loss = self.compute_feature_consistency_loss(src_embedded_ins_features_a.detach(), tgt_embedded_ins_features_a, pos_idx, neg_idx)
-        # return self.eager_outputs(losses, detection_result)
-        return
+        return self.eager_outputs(losses, tgt_detection_result)
     
     def domain_forward(self, imgs, targets, domain):
         img_features = self.backbone(imgs)
