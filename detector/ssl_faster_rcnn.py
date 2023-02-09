@@ -52,7 +52,7 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
                                    cfg.lambda_adv_daytime * (tgt_losses["loss_daytime_img_score"] + tgt_losses["loss_daytime_ins_score"] + tgt_losses["loss_daytime_consistency"]) + \
                                    cfg.lambda_adv_weather * (tgt_losses["loss_weather_img_score"] + tgt_losses["loss_weather_ins_score"] + tgt_losses["loss_weather_consistency"])
             
-            losses["total"] = primary_total_loss + auxiliary_total_loss + cfg.lambda_feature_consistency * feature_consistency_loss
+            losses["loss_total"] = primary_total_loss + auxiliary_total_loss + cfg.lambda_feature_consistency * feature_consistency_loss
 
         else:
             tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
