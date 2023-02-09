@@ -43,6 +43,9 @@ class Config():
     lambda_adv_daytime = 0.1
     lambda_adv_weather = 0.15
 
+    # semi-supervised training parameters
+    cos_similarity_top_n_ratio = 0.25
+
     # anchor parameters
     anchor_size = [32.0, 64.0, 128.0, 256.0]
     aspect_ratio = [0.5, 1.0, 2.0]
