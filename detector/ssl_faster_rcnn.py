@@ -22,7 +22,19 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
         self.daytime_classifier = Daytime_Classifier(self.backbone.out_channels)
         self.weather_classifier = Weather_Classifier(self.backbone.out_channels)
 
-    def forward(self, imgs, targets):
+        self.cls_loss_fn = nn.CrossEntropyLoss()
+        self.reg_loss_fn = nn.SmoothL1Loss()
+
+    def forward(self, src_imgs, src_targets, tgt_imgs, tgt_targets):
+        src_embedded_ins_features_p, src_embedded_ins_features_a, src_losses, src_detection_result = self.domain_forward(src_imgs, src_targets, domain="source")
+        tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
+        
+        pos_idx, neg_idx = self.divide_pos_neg_set(src_embedded_ins_features_p.detach(), tgt_embedded_ins_features_p.detach())
+        feature_consistency_loss = self.compute_feature_consistency_loss(src_embedded_ins_features_a.detach(), tgt_embedded_ins_features_a, pos_idx, neg_idx)
+        # return self.eager_outputs(losses, detection_result)
+        return
+    
+    def domain_forward(self, imgs, targets, domain):
         img_features = self.backbone(imgs)
         # img: torch.Tensor, shape = (batch_size, 3, 416, 640)
         # img_features: collections.OrderedDict,
@@ -51,7 +63,27 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
         #              len: batch_size
         #              shape of each element: (box_batch_size_per_img, 4) = (512, 4)
         
-        embedded_ins_features,cls_scores, bbox_reg, roi_losses, detection_result = self.primary_detect_head(ins_features, labels, reg_targets, proposals)
+        if domain == "source":
+            embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_result_p = self.primary_detect_head(ins_features, labels, reg_targets, proposals)
+
+            with torch.no_grad():
+                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, None, None, proposals)
+            
+            ssl_gt_label = torch.argmax(torch.softmax(cls_scores_a, dim=1), dim=1)
+            cls_consistency_loss = self.cls_loss_fn(cls_scores_p, ssl_gt_label)
+            reg_consistency_loss = self.reg_loss_fn(bbox_reg_p, bbox_reg_a)
+        elif domain == "target":
+            with torch.no_grad():
+                embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_result_p = self.primary_detect_head(ins_features, None, None, proposals)
+            
+            embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
+
+            ssl_gt_label = torch.argmax(torch.softmax(cls_scores_p, dim=1), dim=1)
+            cls_consistency_loss = self.cls_loss_fn(cls_scores_a, ssl_gt_label)
+            reg_consistency_loss = self.reg_loss_fn(bbox_reg_a, bbox_reg_p)
+        else:
+            raise ValueError("domain only can be source or target.")
+        
         # embedded_ins_features: torch.Tensor, shape = (box_batch_size_per_img*batch_size, 1024, 7, 7)
         # 
         # cls_scores: torch.Tensor, shape = (box_batch_size_per_img*batch_size, num_classes)
@@ -60,6 +92,9 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
         # 
         # roi_losses: dict
         #             keys: "loss_roi_cls", "loss_roi_box_reg"
+        #
+        # detection_result: list
+        #                     keys of each elements: boxes, labels, scores
 
         if self.training:
             daytime_adv_losses = self.daytime_classifier(img_features, ins_features, targets)
@@ -72,16 +107,63 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
 
         losses = {}
         if self.training:
-            losses["loss_total"] = rpn_losses["loss_rpn_score"] + rpn_losses["loss_rpn_box_reg"] + \
-                                   roi_losses["loss_roi_cls"] + roi_losses["loss_roi_box_reg"] + \
-                                   cfg.lambda_adv_daytime * (daytime_adv_losses["loss_daytime_img_score"] + daytime_adv_losses["loss_daytime_ins_score"] + daytime_adv_losses["loss_daytime_consistency"]) + \
-                                   cfg.lambda_adv_weather * (weather_adv_losses["loss_weather_img_score"] + weather_adv_losses["loss_weather_ins_score"] + weather_adv_losses["loss_weather_consistency"])
-            losses.update(rpn_losses)
-            losses.update(roi_losses)
-            losses.update(daytime_adv_losses)
-            losses.update(weather_adv_losses)
+            is_labeled = True if "boxes" in targets[0].keys() and "labels" in targets[0].keys() else False
+            if is_labeled:
+                losses.update(rpn_losses)
+                
+                if domain == "source":
+                    losses.update(roi_losses_p)
+                else:
+                    losses.update(roi_losses_a)
+
+                losses.update(daytime_adv_losses)
+                losses.update(weather_adv_losses)
+            else:
+                losses.update(daytime_adv_losses)
+                losses.update(weather_adv_losses)
         
-        return self.eager_outputs(losses, detection_result)
+        if domain == "source":
+            return embedded_ins_features_p, embedded_ins_features_a, losses, detection_result_p
+        else:
+            return embedded_ins_features_p, embedded_ins_features_a, losses, detection_result_a
+        
+    def divide_pos_neg_set(self, src_embedded_ins_features, tgt_embedded_ins_features):
+        # compute cosine
+        src_embedded_ins_features = torch.mean(src_embedded_ins_features, dim=[2, 3]).T
+        tgt_embedded_ins_features = torch.mean(tgt_embedded_ins_features, dim=[2, 3])
+
+        inner_product = torch.mm(tgt_embedded_ins_features, src_embedded_ins_features)
+        norm_src = torch.norm(src_embedded_ins_features, dim=0, keepdim=True).expand_as(inner_product)
+        norm_tgt = torch.norm(tgt_embedded_ins_features, dim=1, keepdim=True).expand_as(inner_product)
+        cos_similarity = inner_product / norm_src / norm_tgt
+        
+        # take top-k entry as positive set, and the others are negative set
+        sorted_idx = torch.argsort(cos_similarity, dim=1, descending=True)
+        top_k = int(len(sorted_idx) * cfg.cos_similarity_top_n_ratio)
+        
+        pos_idx = sorted_idx[:, :top_k]
+        neg_idx = sorted_idx[:, top_k:]
+
+        return pos_idx, neg_idx
+    
+    def compute_feature_consistency_loss(self, src_embedded_ins_features, tgt_embedded_ins_features, pos_idx, neg_idx):
+        src_embedded_ins_features = torch.mean(src_embedded_ins_features, dim=[2, 3])
+        src_embedded_ins_features = src_embedded_ins_features / torch.norm(src_embedded_ins_features, dim=1, keepdim=True)
+        tgt_embedded_ins_features = torch.mean(tgt_embedded_ins_features, dim=[2, 3])
+        tgt_embedded_ins_features = tgt_embedded_ins_features / torch.norm(tgt_embedded_ins_features, dim=1, keepdim=True)
+        
+        pos_sample = src_embedded_ins_features[pos_idx]
+        neg_sample = src_embedded_ins_features[neg_idx]
+
+        pos_similarity = torch.sum(tgt_embedded_ins_features.unsqueeze(1) * pos_sample, dim=2, keepdim=True)
+        pos_similarity = torch.sum(pos_similarity.exp(), dim=1)
+        
+
+        neg_similarity = torch.sum(tgt_embedded_ins_features.unsqueeze(1) * neg_sample, dim=2, keepdim=True)
+        neg_similarity = torch.sum(neg_similarity.exp(), dim=1)
+        
+        loss = -torch.mean((pos_similarity / (pos_similarity + neg_similarity)).log())
+        return loss
     
     @torch.jit.unused
     def eager_outputs(self, losses, detections):
