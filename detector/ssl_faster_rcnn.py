@@ -37,6 +37,23 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
             losses["loss_primary"] = src_losses
             losses["loss_auxiliary"] = tgt_losses
             losses["loss_feature_consistency"] = feature_consistency_loss
+
+            primary_total_loss = src_losses["loss_rpn_score"] + src_losses["loss_rpn_box_reg"] + \
+                                 src_losses["loss_roi_cls"] + src_losses["loss_roi_box_reg"] + \
+                                 cfg.lambda_cls_consistency * src_losses["loss_roi_cls_consistency"] + \
+                                 cfg.lambda_reg_consistency * src_losses["loss_roi_reg_consistency"] + \
+                                 cfg.lambda_adv_daytime * (src_losses["loss_daytime_img_score"] + src_losses["loss_daytime_ins_score"] + src_losses["loss_daytime_consistency"]) + \
+                                 cfg.lambda_adv_weather * (src_losses["loss_weather_img_score"] + src_losses["loss_weather_ins_score"] + src_losses["loss_weather_consistency"])
+            
+            auxiliary_total_loss = tgt_losses["loss_rpn_score"] + tgt_losses["loss_rpn_box_reg"] + \
+                                   src_losses["loss_roi_cls"] + tgt_losses["loss_roi_box_reg"] + \
+                                   cfg.lambda_cls_consistency * tgt_losses["loss_roi_cls_consistency"] + \
+                                   cfg.lambda_reg_consistency * tgt_losses["loss_roi_reg_consistency"] + \
+                                   cfg.lambda_adv_daytime * (tgt_losses["loss_daytime_img_score"] + tgt_losses["loss_daytime_ins_score"] + tgt_losses["loss_daytime_consistency"]) + \
+                                   cfg.lambda_adv_weather * (tgt_losses["loss_weather_img_score"] + tgt_losses["loss_weather_ins_score"] + tgt_losses["loss_weather_consistency"])
+            
+            losses["total"] = primary_total_loss + auxiliary_total_loss + cfg.lambda_feature_consistency * feature_consistency_loss
+
         else:
             tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
         
