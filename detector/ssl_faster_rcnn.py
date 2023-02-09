@@ -124,9 +124,15 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
                 else:
                     losses.update(roi_losses_a)
 
+                losses["loss_roi_cls_consistency"] = cls_consistency_loss
+                losses["loss_roi_reg_consistency"] = reg_consistency_loss
+
                 losses.update(daytime_adv_losses)
                 losses.update(weather_adv_losses)
             else:
+                losses["loss_roi_cls_consistency"] = cls_consistency_loss
+                losses["loss_roi_reg_consistency"] = reg_consistency_loss
+
                 losses.update(daytime_adv_losses)
                 losses.update(weather_adv_losses)
         
