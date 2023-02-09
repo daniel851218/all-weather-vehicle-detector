@@ -53,9 +53,9 @@ class Detect_Head(nn.Module):
         losses = {}
         detection_result = torch.jit.annotate(List[Dict[str, torch.Tensor]], [])
         if self.training:
-            assert labels is not None and reg_targets is not None
-            cls_loss, reg_loss = self.compute_loss(cls_scores, bbox_reg, labels, reg_targets)
-            losses = {"loss_roi_cls": cls_loss, "loss_roi_box_reg": reg_loss}
+            if labels is not None and reg_targets is not None:
+                cls_loss, reg_loss = self.compute_loss(cls_scores, bbox_reg, labels, reg_targets)
+                losses = {"loss_roi_cls": cls_loss, "loss_roi_box_reg": reg_loss}
         else:
             boxes, scores, labels = self.postprocess_detections(cls_scores, bbox_reg, proposals)
             num_imgs = len(boxes)

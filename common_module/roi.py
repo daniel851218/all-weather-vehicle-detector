@@ -14,13 +14,15 @@ class RoI_Align(nn.Module):
         self.roi_align = torchvision.ops.MultiScaleRoIAlign(featmap_names=["p2", "p3", "p4", "p5"], output_size=cfg.roi_align_out_size, sampling_ratio=cfg.roi_sample_ratio)
 
     def forward(self, features, proposals, img_shapes, targets=None):
-        if targets is not None:
+        is_labeled = True if "boxes" in targets[0].keys() and "labels" in targets[0].keys() else False
+        if targets is not None and is_labeled:
             for t in targets:
                 floating_point_types = (torch.float, torch.double, torch.half)
                 assert t["boxes"].dtype in floating_point_types, "target boxes must of float type"
 
         if self.training:
-            proposals, labels, reg_targets = self.select_training_samples(proposals, targets)
+            if is_labeled:
+                proposals, labels, reg_targets = self.select_training_samples(proposals, targets)
             # proposals: list
             #            len: batch_size
             #            shape of each element: (box_batch_size_per_img, 4) = (512, 4)
@@ -32,6 +34,10 @@ class RoI_Align(nn.Module):
             # reg_targets: list
             #              len: batch_size
             #              shape of each element: (box_batch_size_per_img, 4) = (512, 4)
+            else:
+                for i in range(len(proposals)):
+                    proposals[i] = proposals[i][:cfg.box_batch_size_per_img, :]
+                labels, reg_targets = None, None
         else:
             labels, reg_targets = None, None
 

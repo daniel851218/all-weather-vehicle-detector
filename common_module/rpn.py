@@ -119,7 +119,8 @@ class RPN(nn.Module):
         # scores: list
 
         losses = {}
-        if self.training:
+        is_labeled = True if "boxes" in targets[0].keys() and "labels" in targets[0].keys() else False
+        if self.training and is_labeled:
             assert targets is not None
             labels, matched_gt_boxes = self.assign_targets_to_anchors(anchors, targets)
 
