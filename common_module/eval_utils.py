@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 
-from config.train_cfg import cfg
+from config.test_cfg import cfg
 from common_module.boxes_utils import box_iou
 
 def get_class_TP_FP(targets, detections, iou_thresh):
@@ -50,7 +50,7 @@ def get_class_TP_FP(targets, detections, iou_thresh):
                         gt_box_has_matched.append(gt_box_idx)
                     else:
                         TP_FP_class[i] = False
-
+            
             batch_class_TP_FP[c-1].append(TP_FP_class)
             batch_class_score[c-1].append(pred_score_class)
 
@@ -60,7 +60,7 @@ def get_class_TP_FP(targets, detections, iou_thresh):
             batch_class_score[c] = torch.tensor(batch_class_score[c]).to("cpu")
         else:
             batch_class_TP_FP[c] = torch.cat(batch_class_TP_FP[c], dim=0).to("cpu")
-            batch_class_score[c] = torch.cat(batch_class_score[c], dim=0).to("cpu")
+            batch_class_score[c] = torch.cat(batch_class_score[c], dim=0).to("cpu")            
 
     return batch_class_TP_FP, batch_class_score, torch.tensor(batch_class_num_gt)
 
