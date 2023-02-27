@@ -182,10 +182,14 @@ class Driving_Video_Dataset(Base_Dataset):
         img = Image.open(img_file)
         img, ratio = self.resize_img(img, data_cfg.img_w, data_cfg.img_h)
 
-        img = self.img_aug_transform(img)
-        img = self.normalize(img)
-        img, delta = self.pad_image(img, data_cfg.img_w, data_cfg.img_h)
+        img_aug_1 = self.img_aug_transform(img)
+        img_aug_1 = self.normalize(img_aug_1)
+        img_aug_1, delta = self.pad_image(img_aug_1, data_cfg.img_w, data_cfg.img_h)
 
+        img_aug_2 = self.img_aug_transform(img)
+        img_aug_2 = self.normalize(img_aug_2)
+        img_aug_2, delta = self.pad_image(img_aug_2, data_cfg.img_w, data_cfg.img_h)
+        
         daytime_class = 1 if "daytime" in img_file.split(os.sep)[-3].split("_") else 0
         weather_class = 1 if "normal" in img_file.split(os.sep)[-3].split("_") else 0
         daytime_class = torch.tensor((daytime_class))
@@ -196,7 +200,7 @@ class Driving_Video_Dataset(Base_Dataset):
             "weather_class": weather_class, 
             }
         
-        return img, target
+        return img_aug_1, img_aug_2, target
 
 # ----------------------------------------------------------------------------------------------------
 
