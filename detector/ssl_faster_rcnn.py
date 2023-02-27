@@ -9,9 +9,9 @@ from common_module.roi import RoI_Align
 from common_module.detect_head import Detect_Head
 from common_module.domain_classifier import Daytime_Classifier, Weather_Classifier
 
-class Semi_Supervised_Faster_RCNN(nn.Module):
+class Semi_Supervised_Faster_RCNN_Stage_1(nn.Module):
     def __init__(self):
-        super(Semi_Supervised_Faster_RCNN, self).__init__()
+        super(Semi_Supervised_Faster_RCNN_Stage_1, self).__init__()
         self.backbone = ResNet50_FPN()
         self.rpn = RPN(self.backbone.out_channels, len(cfg.aspect_ratio))
         self.roi_align = RoI_Align()
@@ -28,7 +28,7 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
     def forward(self, src_imgs, src_targets, tgt_imgs, tgt_targets):
         losses = {}
         if self.training:
-            src_embedded_ins_features_p, src_embedded_ins_features_a, src_losses, src_detection_result = self.domain_forward(src_imgs, src_targets, domain="source")
+            src_embedded_ins_features_p, src_embedded_ins_features_a, src_losses, _ = self.domain_forward(src_imgs, src_targets, domain="source")
             tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
 
             pos_idx, neg_idx = self.divide_pos_neg_set(src_embedded_ins_features_p.detach(), tgt_embedded_ins_features_p.detach())
@@ -46,7 +46,7 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
                                  cfg.lambda_adv_weather * (src_losses["loss_weather_img_score"] + src_losses["loss_weather_ins_score"] + src_losses["loss_weather_consistency"])
             
             auxiliary_total_loss = tgt_losses["loss_rpn_score"] + tgt_losses["loss_rpn_box_reg"] + \
-                                   src_losses["loss_roi_cls"] + tgt_losses["loss_roi_box_reg"] + \
+                                   tgt_losses["loss_roi_cls"] + tgt_losses["loss_roi_box_reg"] + \
                                    cfg.lambda_cls_consistency * tgt_losses["loss_roi_cls_consistency"] + \
                                    cfg.lambda_reg_consistency * tgt_losses["loss_roi_reg_consistency"] + \
                                    cfg.lambda_adv_daytime * (tgt_losses["loss_daytime_img_score"] + tgt_losses["loss_daytime_ins_score"] + tgt_losses["loss_daytime_consistency"]) + \
@@ -98,14 +98,17 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
             cls_consistency_loss = self.cls_loss_fn(cls_scores_p, ssl_gt_label)
             reg_consistency_loss = self.reg_loss_fn(bbox_reg_p, bbox_reg_a)
         elif domain == "target":
-            with torch.no_grad():
-                embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_result_p = self.primary_detect_head(ins_features, None, None, proposals)
-            
-            embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
+            if self.training:
+                with torch.no_grad():
+                    embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_result_p = self.primary_detect_head(ins_features, None, None, proposals)
+                
+                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
 
-            ssl_gt_label = torch.argmax(torch.softmax(cls_scores_p, dim=1), dim=1)
-            cls_consistency_loss = self.cls_loss_fn(cls_scores_a, ssl_gt_label)
-            reg_consistency_loss = self.reg_loss_fn(bbox_reg_a, bbox_reg_p)
+                ssl_gt_label = torch.argmax(torch.softmax(cls_scores_p, dim=1), dim=1)      # this line should not calcluate the gradinet
+                cls_consistency_loss = self.cls_loss_fn(cls_scores_a, ssl_gt_label)
+                reg_consistency_loss = self.reg_loss_fn(bbox_reg_a, bbox_reg_p)
+            else:
+                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
         else:
             raise ValueError("domain only can be source or target.")
         
@@ -156,8 +159,11 @@ class Semi_Supervised_Faster_RCNN(nn.Module):
         if domain == "source":
             return embedded_ins_features_p, embedded_ins_features_a, losses, detection_result_p
         else:
-            return embedded_ins_features_p, embedded_ins_features_a, losses, detection_result_a
-        
+            if self.training:
+                return embedded_ins_features_p, embedded_ins_features_a, losses, detection_result_a
+            else:
+                return None, embedded_ins_features_a, losses, detection_result_a
+
     def divide_pos_neg_set(self, src_embedded_ins_features, tgt_embedded_ins_features):
         # compute cosine
         src_embedded_ins_features = torch.mean(src_embedded_ins_features, dim=[2, 3]).T
