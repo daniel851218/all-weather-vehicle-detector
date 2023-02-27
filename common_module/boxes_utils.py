@@ -125,7 +125,7 @@ class BoxCoder():
         From a set of original boxes and encoded relative box offsets, get the decoded boxes.
         - box_reg: encoded boxes (bounding box regression parameters)
         '''
-        anchors = anchors.to(box_reg.dtype)
+        anchors = anchors.to(box_reg.device)
 
         # x_min, y_min, x_max, y_max
         widths = anchors[:, 2:3] - anchors[:, 0:1]      # anchor width
