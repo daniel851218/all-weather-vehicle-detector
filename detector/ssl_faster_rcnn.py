@@ -101,10 +101,10 @@ class Semi_Supervised_Faster_RCNN_Stage_1(nn.Module):
             if self.training:
                 with torch.no_grad():
                     embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_result_p = self.primary_detect_head(ins_features, None, None, proposals)
+                    ssl_gt_label = torch.argmax(torch.softmax(cls_scores_p, dim=1), dim=1)
                 
                 embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
 
-                ssl_gt_label = torch.argmax(torch.softmax(cls_scores_p, dim=1), dim=1)      # this line should not calcluate the gradinet
                 cls_consistency_loss = self.cls_loss_fn(cls_scores_a, ssl_gt_label)
                 reg_consistency_loss = self.reg_loss_fn(bbox_reg_a, bbox_reg_p)
             else:
