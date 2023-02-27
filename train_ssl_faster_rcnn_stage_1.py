@@ -10,25 +10,24 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from config.train_cfg import cfg
-from load_data.load_dataset import BDD_Dataset, Mixed_Labeled_Dataset, Mixed_UnLabeled_Dataset
+from load_data.load_dataset import BDD_Dataset, Mixed_Labeled_Dataset
 from common_module.eval_utils import calc_mAP, get_class_TP_FP
-from detector.ssl_faster_rcnn import Semi_Supervised_Faster_RCNN
+from detector.ssl_faster_rcnn import Semi_Supervised_Faster_RCNN_Stage_1
 
 def to_CUDA(imgs, targets):
     imgs = imgs.to("cuda")
     for t in targets:
-        t["boxes"] = t["boxes"].to("cuda")
-        t["labels"] = t["labels"].to("cuda")
-        t["daytime_class"] = t["daytime_class"].to("cuda")
-        t["weather_class"] = t["weather_class"].to("cuda")
-
+        for key in t.keys():
+            t[key] = t[key].to("cuda") if t[key] is not None else t[key]
+    
     return imgs, targets
 
 def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch, log_loss, log_freq):
     model.train()
     count = 0
+    pbar = tqdm(data_loader)
 
-    for src_imgs, src_targets, tgt_imgs, tgt_targets in tqdm(data_loader):
+    for src_imgs, src_targets, tgt_imgs, tgt_targets in pbar:
         src_imgs = torch.stack(src_imgs, dim=0)
         tgt_imgs = torch.stack(tgt_imgs, dim=0)
 
@@ -37,9 +36,9 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
             tgt_imgs, tgt_targets = to_CUDA(tgt_imgs, tgt_targets)
 
         loss_dict = model(src_imgs, src_targets, tgt_imgs, tgt_targets)
-        # optimizer.zero_grad()
-        # loss_dict["loss_total"].backward()
-        # optimizer.step()
+        optimizer.zero_grad()
+        loss_dict["loss_total"].backward()
+        optimizer.step()
 
         assert loss_dict["loss_primary"].keys() == log_loss["loss_primary"].keys()
         assert loss_dict["loss_auxiliary"].keys() == log_loss["loss_auxiliary"].keys()
@@ -49,12 +48,14 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
         for k in loss_dict["loss_primary"].keys():
             log_loss["loss_primary"][k].append(loss_dict["loss_primary"][k].item())
             log_loss["loss_auxiliary"][k].append(loss_dict["loss_auxiliary"][k].item())
+
+        pbar.set_description(Fore.BLUE + "loss_total: " + Fore.RESET + f"{loss_dict['loss_total']:2.3f}")
         
         iters = epoch * iter_per_batch + count
         if iters % log_freq == 0:
             avg_loss_total = sum(log_loss["loss_total"]) / len(log_loss["loss_total"])
             avg_loss_feature_consistency = sum(log_loss["loss_feature_consistency"]) / len(log_loss["loss_feature_consistency"])
-            
+
             avg_loss_primary_rpn_score = sum(log_loss["loss_primary"]["loss_rpn_score"]) / len(log_loss["loss_primary"]["loss_rpn_score"])
             avg_loss_primary_rpn_box_reg = sum(log_loss["loss_primary"]["loss_rpn_box_reg"]) / len(log_loss["loss_primary"]["loss_rpn_box_reg"])
             avg_loss_primary_roi_cls = sum(log_loss["loss_primary"]["loss_roi_cls"]) / len(log_loss["loss_primary"]["loss_roi_cls"])
@@ -72,6 +73,7 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
             avg_loss_auxiliary_rpn_box_reg = sum(log_loss["loss_auxiliary"]["loss_rpn_box_reg"]) / len(log_loss["loss_auxiliary"]["loss_rpn_box_reg"])
             avg_loss_auxiliary_roi_cls = sum(log_loss["loss_auxiliary"]["loss_roi_cls"]) / len(log_loss["loss_auxiliary"]["loss_roi_cls"])
             avg_loss_auxiliary_roi_box_reg = sum(log_loss["loss_auxiliary"]["loss_roi_box_reg"]) / len(log_loss["loss_auxiliary"]["loss_roi_box_reg"])
+
             avg_loss_auxiliary_roi_cls_consistency = sum(log_loss["loss_auxiliary"]["loss_roi_cls_consistency"]) / len(log_loss["loss_auxiliary"]["loss_roi_cls_consistency"])
             avg_loss_auxiliary_roi_reg_consistency = sum(log_loss["loss_auxiliary"]["loss_roi_reg_consistency"]) / len(log_loss["loss_auxiliary"]["loss_roi_reg_consistency"])
             avg_loss_auxiliary_daytime = sum(log_loss["loss_auxiliary"]["loss_daytime_img_score"]) / len(log_loss["loss_auxiliary"]["loss_daytime_img_score"]) + \
@@ -83,8 +85,7 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
             
             writer.add_scalar("loss_total", avg_loss_total, iters)
             writer.add_scalar("loss_feature_consistency", avg_loss_feature_consistency, iters)
-
-
+            
             writer.add_scalar("loss_primary_rpn_score", avg_loss_primary_rpn_score, iters)
             writer.add_scalar("loss_primary_rpn_box_reg", avg_loss_primary_rpn_box_reg, iters)
             writer.add_scalar("loss_primary_roi_cls", avg_loss_primary_roi_cls, iters)
@@ -118,7 +119,7 @@ def evaluate(model, data_loader):
             if cfg.device == "cuda" and torch.cuda.is_available():
                 imgs, targets = to_CUDA(imgs, targets)
 
-            detections = model(imgs, targets)
+            detections = model(None, None, imgs, targets)
 
             batch_class_TP_FP, batch_class_score, batch_class_num_gt = get_class_TP_FP(targets, detections, 0.5)
 
@@ -145,21 +146,19 @@ if __name__ == "__main__":
     # ============================= Load Data ============================
 
     print(Fore.GREEN + "Load Data ..." + Fore.RESET)
-    mixed_labeled_dataset = Mixed_Labeled_Dataset()
-    mixed_unlabeled_dataset = Mixed_UnLabeled_Dataset()
-    bdd_val_dataset = BDD_Dataset(is_train=False)
+    train_dataset = Mixed_Labeled_Dataset()
+    val_dataset = BDD_Dataset(is_train=False)
 
-    print(f"\tMixed Labeled Data: {len(mixed_labeled_dataset)}")
-    print(f"\tMixed UnLabeled Data: {len(mixed_unlabeled_dataset)}")
-    print(f"\tBDD Validation Data: {len(bdd_val_dataset)}")
+    print(f"\tMixed Labeled Data: {len(train_dataset)}")
+    print(f"\tBDD Validation Data: {len(val_dataset)}")
 
-    mixed_labeled_dataloader = DataLoader(mixed_labeled_dataset, batch_size=cfg.batch_size, shuffle=True ,num_workers=os.cpu_count(), collate_fn=mixed_labeled_dataset.collate_fn)
-    mixed_unlabeled_dataloader = DataLoader(mixed_unlabeled_dataset, batch_size=cfg.batch_size, shuffle=True, num_workers=os.cpu_count(), collate_fn=mixed_unlabeled_dataset.collate_fn)
-    bdd_val_dataloader = DataLoader(bdd_val_dataset, batch_size=cfg.batch_size, shuffle=False, num_workers=os.cpu_count(), collate_fn=bdd_val_dataset.collate_fn)
+    train_dataloader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True ,num_workers=os.cpu_count(), collate_fn=train_dataset.collate_fn)
+    val_dataloader = DataLoader(val_dataset, batch_size=cfg.batch_size, shuffle=False, num_workers=os.cpu_count(), collate_fn=val_dataset.collate_fn)
 
     # =========================== Create Model ===========================
     print(Fore.GREEN + "Create Model ...\n" + Fore.RESET)
-    obj_detector = Semi_Supervised_Faster_RCNN().to(cfg.device)
+    obj_detector = Semi_Supervised_Faster_RCNN_Stage_1().to(cfg.device)
+
     if cfg.is_pre_train:
         obj_detector.load_model(cfg.pre_train_model_path, cfg.pre_train_model_epoch)
     
@@ -211,13 +210,10 @@ if __name__ == "__main__":
         print(f"\nEpoch: {epoch:03d}")
         print(f"Learning Rate: {optimizer.param_groups[0]['lr']}")
 
-        iter_per_batch = len(mixed_labeled_dataset) // cfg.batch_size + 1 if len(mixed_labeled_dataset) % cfg.batch_size else len(mixed_labeled_dataset) // cfg.batch_size
-        train_one_epoch(obj_detector, optimizer, mixed_labeled_dataloader, writer, epoch, iter_per_batch, log_loss, log_freq=100)
+        iter_per_batch = len(train_dataset) // cfg.batch_size + 1 if len(train_dataset) % cfg.batch_size else len(train_dataset) // cfg.batch_size
+        train_one_epoch(obj_detector, optimizer, train_dataloader, writer, epoch, iter_per_batch, log_loss, log_freq=100)
 
-        iter_per_batch = len(mixed_unlabeled_dataset) // cfg.batch_size + 1 if len(mixed_unlabeled_dataset) % cfg.batch_size else len(mixed_unlabeled_dataset) // cfg.batch_size
-        train_one_epoch(obj_detector, optimizer, mixed_unlabeled_dataset, writer, epoch, iter_per_batch, log_loss, log_freq=100)
-
-        mAP_50 = evaluate(obj_detector, bdd_val_dataloader)
+        mAP_50 = evaluate(obj_detector, val_dataloader)
         print(f"mAP_50: {mAP_50}")
         if best_mAP_50 < mAP_50:
             print(Fore.RED + "Best mAP_50: " + Fore.RESET + f"{best_mAP_50} \u2192 {mAP_50}")
