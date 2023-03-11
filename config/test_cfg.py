@@ -18,7 +18,7 @@ class Config():
 
     device = "cuda"
     num_classes = 6 + 1       # foreground + background
-    obj_class = {           # 0 for background
+    obj_classes = {           # 0 for background
         1: "Car",
         2: "Truck",
         3: "Pedestrian",
