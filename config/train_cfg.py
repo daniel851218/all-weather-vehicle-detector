@@ -2,28 +2,28 @@ import os
 
 class Config():
     dataset = "Mixed"
-    ckpt_dir = os.path.join("runs", dataset, "ssl_faster_rcnn")
+    ckpt_dir = os.path.join("runs", dataset, "stage_2")
 
     # use pre-trained weight or not
     is_pre_train = False
     pre_train_model_epoch = None
     pre_train_model_path = None
     
-    device = "cuda"
-    batch_size = 4
+    device = "cpu"
+    batch_size = 1
     start_epoch = 0
     epochs = 100
     max_patience = 10
 
     # optimizer parameters
-    lr = 1e-3
+    lr = 1e-6
     momentum = 0.9
-    weight_decay = 5e-4
+    weight_decay = 1e-5
 
     # lr_scheduler
     lr_gamma = 0.5
     lr_dec_step_size = 1
-    lr_min = 5e-7
+    lr_min = 1e-9
 
     # target objects
     num_classes = 6 + 1       # foreground + background
@@ -45,9 +45,12 @@ class Config():
 
     # semi-supervised training parameters
     cos_similarity_top_n_ratio = 0.25
-    lambda_cls_consistency = 1.0
-    lambda_reg_consistency = 1.0
-    lambda_feature_consistency = 1.0
+    lambda_cls_consistency = 0.1
+    lambda_reg_consistency = 0.1
+    lambda_feature_consistency = 0.1
+
+    lambda_unsup = 0.25
+    alpha_ema = 0.5
 
     # anchor parameters
     anchor_size = [32.0, 64.0, 128.0, 256.0]
@@ -69,7 +72,7 @@ class Config():
     box_positive_fraction = 0.25
     box_score_thresh = 0.05
     box_nms_thresh = 0.5
-    box_detections_per_img = 100
+    box_detections_per_img = 10
 
     roi_align_out_size = [7, 7]
     roi_sample_ratio = 2
