@@ -1,5 +1,5 @@
 import os
-from config.train_cfg import cfg
+from config.train_test_cfg import cfg
 
 class Load_Data_Config():
     shift_txt_file_train = os.path.join("dataset", "SHIFT", "train_shift.txt")

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.jit.annotations import List, Dict
 
-from config.train_cfg import cfg
+from config.train_test_cfg import cfg
 from common_module import boxes_utils
 from common_module.resnet import Residual_Basic
 

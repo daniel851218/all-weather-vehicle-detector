@@ -5,7 +5,7 @@ from tqdm import tqdm
 from colorama import Fore
 from torch.utils.data import DataLoader
 
-from config.test_cfg import cfg
+from config.train_test_cfg import cfg
 from load_data.load_dataset import SHIFT_Dataset, BDD_Dataset
 from common_module.eval_utils import calc_mAP, get_class_TP_FP
 from detector.faster_rcnn import Faster_RCNN
@@ -46,11 +46,11 @@ def evaluate(model, data_loader):
 
 def print_result(AP_each_class, P_each_class, R_each_class, num_gt_boxes):
     mAP = sum(AP_each_class) / len(AP_each_class)
-    print(f"\nImage Type: {cfg.img_type}")
+    print(f"\nImage Type: {cfg.test_img_type}")
     print(f"\n{'Class':^15s}|{'Labels':^15s}|{'P':^15s}|{'R':^15s}|{'mAP@.5':^15s}")
     print("=" * 79)
     for i in range(len(AP_each_class)):
-        print(f"{cfg.obj_class[i+1]:^15s}|{int(num_gt_boxes[i]):^15d}|{P_each_class[i]:^15f}|{R_each_class[i]:^15f}|{AP_each_class[i]:^15f}")
+        print(f"{cfg.obj_classes[i+1]:^15s}|{int(num_gt_boxes[i]):^15d}|{P_each_class[i]:^15f}|{R_each_class[i]:^15f}|{AP_each_class[i]:^15f}")
         print("-" * 79)
     print(f"{'':15s} {'':15s} {'':15s} {'':15s}|{mAP:^15f}\n")
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # =========================== Create Model ===========================
     print(Fore.GREEN + "Create Model ...\n" + Fore.RESET)
     obj_detector = Faster_RCNN().to(cfg.device)
-    obj_detector.load_model(cfg.load_model_dir, cfg.best_epoch)
+    obj_detector.load_model(cfg.pre_train_model_path, cfg.pre_train_model_epoch)
 
     # =========================== Testing ===========================
     print(Fore.GREEN + "Testing ...\n" + "="*100 + Fore.RESET)  

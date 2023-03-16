@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 from torchvision import transforms, ops
 
 from detector.faster_rcnn import Faster_RCNN
-from config.train_cfg import cfg
+from config.train_test_cfg import cfg
 
 def resize_img(img):
     '''

@@ -3,7 +3,7 @@ import json
 
 from glob import glob
 from PIL import Image, ImageDraw
-from config.train_cfg import cfg
+from config.train_test_cfg import cfg
 
 if __name__ == "__main__":
     img_file_list = glob(os.path.join(cfg.test_imgs_dir, "*.jpg"))

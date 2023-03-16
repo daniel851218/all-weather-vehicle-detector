@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision
 
-from config.train_cfg import cfg
+from config.train_test_cfg import cfg
 from common_module import boxes_utils
 
 class RoI_Align(nn.Module):

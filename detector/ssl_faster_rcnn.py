@@ -2,7 +2,7 @@ import os
 import torch
 import torch.nn as nn
 
-from config.train_cfg import cfg
+from config.train_test_cfg import cfg
 from common_module.resnet import ResNet50_FPN
 from common_module.rpn import RPN
 from common_module.roi import RoI_Align

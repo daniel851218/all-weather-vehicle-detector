@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from config.train_cfg import cfg
+from config.train_test_cfg import cfg
 from common_module import boxes_utils
 from common_module.conv2d import Conv2D_ReLU
 

@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 
-from config.test_cfg import cfg
+from config.train_test_cfg import cfg
 from common_module.boxes_utils import box_iou
 
 def get_class_TP_FP(targets, detections, iou_thresh):

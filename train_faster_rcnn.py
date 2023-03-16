@@ -9,7 +9,7 @@ from colorama import Fore
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from config.train_cfg import cfg
+from config.train_test_cfg import cfg
 from load_data.load_dataset import SHIFT_Dataset
 from load_data.load_dataset import BDD_Dataset
 from common_module.eval_utils import calc_mAP, get_class_TP_FP
