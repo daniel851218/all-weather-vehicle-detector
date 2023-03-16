@@ -100,7 +100,7 @@ if __name__ == "__main__":
     time_str = f"{cur_time.tm_mon:02d}{cur_time.tm_mday:02d}_{cur_time.tm_hour:02d}{cur_time.tm_min:02d}"
     ckpt_dir = os.path.join(cfg.ckpt_dir, time_str)
     writer = SummaryWriter(ckpt_dir)
-    shutil.copy(os.path.join("config", "train_cfg.py"), os.path.join(ckpt_dir, "train_cfg.py"))
+    shutil.copy(os.path.join("config", "train_test_cfg.py"), os.path.join(ckpt_dir, "train_test_cfg.py"))
 
     if cfg.device == "cuda" and torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
