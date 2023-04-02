@@ -244,8 +244,8 @@ class Mixed_Labeled_Dataset(Base_Dataset):
         bdd_img, bdd_delta = self.pad_image(bdd_img, data_cfg.img_w, data_cfg.img_h)
         bdd_boxes, bdd_obj_classes = self.resize_bbx(bdd_json_data, bdd_ratio, bdd_delta)
 
-        shift_daytime_class = 1 if "daytime" in shift_img_file.split(os.sep)[-2].split("_") else 0
-        shift_weather_class = 1 if "normal" in shift_img_file.split(os.sep)[-2].split("_") else 0
+        shift_daytime_class = 1 if "daytime" in shift_img_file.split(os.sep)[-3].split("_") else 0
+        shift_weather_class = 1 if "normal" in shift_img_file.split(os.sep)[-3].split("_") else 0
         shift_daytime_class = torch.tensor((shift_daytime_class))
         shift_weather_class = torch.tensor((shift_weather_class))
 
