@@ -29,7 +29,7 @@ class Semi_Supervised_Faster_RCNN_Stage_1(nn.Module):
         losses = {}
         if self.training:
             src_embedded_ins_features_p, src_embedded_ins_features_a, src_losses, _ = self.domain_forward(src_imgs, src_targets, domain="source")
-            tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
+            tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
 
             pos_idx, neg_idx = self.divide_pos_neg_set(src_embedded_ins_features_p.detach(), tgt_embedded_ins_features_p.detach())
             feature_consistency_loss = self.compute_feature_consistency_loss(src_embedded_ins_features_a.detach(), tgt_embedded_ins_features_a, pos_idx, neg_idx)
@@ -55,9 +55,9 @@ class Semi_Supervised_Faster_RCNN_Stage_1(nn.Module):
             losses["loss_total"] = primary_total_loss + auxiliary_total_loss + cfg.lambda_feature_consistency * feature_consistency_loss
 
         else:
-            tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection_result = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
+            tgt_embedded_ins_features_p, tgt_embedded_ins_features_a, tgt_losses, tgt_detection = self.domain_forward(tgt_imgs, tgt_targets, domain="target")
         
-        return self.eager_outputs(losses, tgt_detection_result)
+        return self.eager_outputs(losses, tgt_detection)
     
     def domain_forward(self, imgs, targets, domain):
         img_features = self.backbone(imgs)
@@ -89,10 +89,10 @@ class Semi_Supervised_Faster_RCNN_Stage_1(nn.Module):
         #              shape of each element: (box_batch_size_per_img, 4) = (512, 4)
         
         if domain == "source":
-            embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_result_p = self.primary_detect_head(ins_features, labels, reg_targets, proposals)
+            embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_p = self.primary_detect_head(ins_features, labels, reg_targets, proposals)
 
             with torch.no_grad():
-                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, None, None, proposals)
+                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_a = self.auxiliary_detect_head(ins_features, None, None, proposals)
             
             ssl_gt_label = torch.argmax(torch.softmax(cls_scores_a, dim=1), dim=1)
             cls_consistency_loss = self.cls_loss_fn(cls_scores_p, ssl_gt_label)
@@ -100,15 +100,15 @@ class Semi_Supervised_Faster_RCNN_Stage_1(nn.Module):
         elif domain == "target":
             if self.training:
                 with torch.no_grad():
-                    embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_result_p = self.primary_detect_head(ins_features, None, None, proposals)
+                    embedded_ins_features_p, cls_scores_p, bbox_reg_p, roi_losses_p, detection_p = self.primary_detect_head(ins_features, None, None, proposals)
                     ssl_gt_label = torch.argmax(torch.softmax(cls_scores_p, dim=1), dim=1)
                 
-                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
+                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
 
                 cls_consistency_loss = self.cls_loss_fn(cls_scores_a, ssl_gt_label)
                 reg_consistency_loss = self.reg_loss_fn(bbox_reg_a, bbox_reg_p)
             else:
-                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_result_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
+                embedded_ins_features_a, cls_scores_a, bbox_reg_a, roi_losses_a, detection_a = self.auxiliary_detect_head(ins_features, labels, reg_targets, proposals)
         else:
             raise ValueError("domain only can be source or target.")
         
@@ -121,7 +121,7 @@ class Semi_Supervised_Faster_RCNN_Stage_1(nn.Module):
         # roi_losses: dict
         #             keys: "loss_roi_cls", "loss_roi_box_reg"
         #
-        # detection_result: list
+        # detection: list
         #                     keys of each elements: boxes, labels, scores
 
         if self.training:
@@ -157,12 +157,12 @@ class Semi_Supervised_Faster_RCNN_Stage_1(nn.Module):
                 losses.update(weather_adv_losses)
         
         if domain == "source":
-            return embedded_ins_features_p, embedded_ins_features_a, losses, detection_result_p
+            return embedded_ins_features_p, embedded_ins_features_a, losses, detection_p
         else:
             if self.training:
-                return embedded_ins_features_p, embedded_ins_features_a, losses, detection_result_a
+                return embedded_ins_features_p, embedded_ins_features_a, losses, detection_a
             else:
-                return None, embedded_ins_features_a, losses, detection_result_a
+                return None, embedded_ins_features_a, losses, detection_a
 
     def divide_pos_neg_set(self, src_embedded_ins_features, tgt_embedded_ins_features):
         # compute cosine
@@ -288,15 +288,15 @@ class Semi_Supervised_Faster_RCNN_Stage_2(nn.Module):
             features = self.teacher_backbone(bdd_imgs)
             proposals, rpn_losses = self.teacher_rpn(bdd_imgs, features, bdd_targets)
             instance_features, labels, reg_targets, proposals = self.teacher_roi_align(features, proposals, [(cfg.img_h, cfg.img_w)]*len(proposals), bdd_targets)
-            embedded_ins_features,cls_scores, bbox_reg, roi_losses, detection_result = self.teacher_detect_head(instance_features, labels, reg_targets, proposals)
+            embedded_ins_features,cls_scores, bbox_reg, roi_losses, detection = self.teacher_detect_head(instance_features, labels, reg_targets, proposals)
             
-            return detection_result
+            return detection
     
     def forward_supervised(self, imgs, targets):
         features = self.student_backbone(imgs)
         proposals, rpn_losses = self.student_rpn(imgs, features, targets)
         instance_features, labels, reg_targets, proposals = self.student_roi_align(features, proposals, [(cfg.img_h, cfg.img_w)]*len(proposals), targets)
-        embedded_ins_features,cls_scores, bbox_reg, roi_losses, detection_result = self.student_detect_head(instance_features, labels, reg_targets, proposals)
+        _,_, _, roi_losses, _ = self.student_detect_head(instance_features, labels, reg_targets, proposals)
 
         losses = {}
         losses.update(rpn_losses)
@@ -316,12 +316,12 @@ class Semi_Supervised_Faster_RCNN_Stage_2(nn.Module):
         features_t = self.teacher_backbone(imgs_1)
         proposals_t, _ = self.teacher_rpn(imgs_1, features_t, empty_targets)
         instance_features_t, labels_t, reg_targets_t, proposals_t = self.teacher_roi_align(features_t, proposals_t, [(cfg.img_h, cfg.img_w)]*len(proposals_t), empty_targets)
-        _, _, _, _, detection_result_t = self.teacher_detect_head(instance_features_t, labels_t, reg_targets_t, proposals_t)
+        _, _, _, _, detection_t = self.teacher_detect_head(instance_features_t, labels_t, reg_targets_t, proposals_t)
         
         # train student model
         features_s = self.student_backbone(imgs_2)
-        proposals_s, rpn_losses = self.student_rpn(imgs_2, features_s, detection_result_t)
-        instance_features_s, labels_s, reg_targets_s, proposals_s = self.student_roi_align(features_s, proposals_s, [(cfg.img_h, cfg.img_w)]*len(proposals_s), detection_result_t)
+        proposals_s, rpn_losses = self.student_rpn(imgs_2, features_s, detection_t)
+        instance_features_s, labels_s, reg_targets_s, proposals_s = self.student_roi_align(features_s, proposals_s, [(cfg.img_h, cfg.img_w)]*len(proposals_s), detection_t)
         _, _, _, roi_losses, _ = self.student_detect_head(instance_features_s, labels_s, reg_targets_s, proposals_s)
 
         daytime_adv_losses = self.student_daytime_classifier(features_s, instance_features_s, targets)
