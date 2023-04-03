@@ -87,8 +87,8 @@ def filter_outlier(boxes, labels, scores, restored_ratio, restored_delta):
         mask = width_mask.to(torch.int) + height_mask.to(torch.int) + ratio_mask.to(torch.int) + area_mask.to(torch.int)
         mask = torch.logical_not(mask > 2)
 
-        filtered_boxes += boxes[labels == (i+1)][mask].tolist()
+        filtered_boxes += boxes[labels == (i+1)][mask].to(torch.int).tolist()
         filtered_labels += labels[labels == (i+1)][mask].tolist()
         filtered_scores += scores[labels == (i+1)][mask].tolist()
         
-    return filtered_boxes, filtered_labels, filtered_scores
+    return torch.tensor(filtered_boxes, dtype=torch.float), torch.tensor(filtered_labels, dtype=torch.int), torch.tensor(filtered_scores)
