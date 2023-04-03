@@ -42,7 +42,7 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
     count = 0
     pbar = tqdm(data_loader)
 
-    for bdd_imgs, bdd_targets, driving_video_imgs_1, driving_video_imgs_2, driving_video_targets in pbar:
+    for bdd_imgs, bdd_targets, driving_video_imgs_1, driving_video_imgs_2, driving_video_targets, ratio, delta in pbar:
         bdd_imgs = torch.stack(bdd_imgs, dim=0)
         driving_video_imgs_1 = torch.stack(driving_video_imgs_1, dim=0)
         driving_video_imgs_2 = torch.stack(driving_video_imgs_2, dim=0)
@@ -52,14 +52,19 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
             driving_video_imgs_1, _ = to_CUDA(driving_video_imgs_1, driving_video_targets)
             driving_video_imgs_2, _ = to_CUDA(driving_video_imgs_2, {})
 
-        loss_dict = model(bdd_imgs, bdd_targets, driving_video_imgs_1, driving_video_imgs_2, driving_video_targets)
+        loss_dict = model(bdd_imgs, bdd_targets, driving_video_imgs_1, driving_video_imgs_2, driving_video_targets, ratio, delta)
         optimizer.zero_grad()
         loss_dict["loss_total"].backward()
         optimizer.step()
         update_weight_ema(model, epoch)
 
-        for k in loss_dict.keys():
-            log_loss[k].append(loss_dict[k].item())
+        for k in loss_dict["loss_sup"].keys():
+            log_loss["loss_sup"][k].append(loss_dict["loss_sup"][k].item())
+        
+        for k in loss_dict["loss_unsup"].keys():
+            log_loss["loss_unsup"][k].append(loss_dict["loss_unsup"][k].item())
+
+        log_loss["loss_total"].append(loss_dict["loss_total"])
 
         pbar.set_description(Fore.BLUE + "loss_total: " + Fore.RESET + f"{loss_dict['loss_total']:2.3f}")
         iters = epoch * iter_per_batch + count
@@ -177,8 +182,8 @@ if __name__ == "__main__":
 
     log_loss = {
         "loss_total": [],
-        "loss_sup": [],
-        "loss_unsup": [],
+        "loss_sup": log_loss_sup,
+        "loss_unsup": log_loss_unsup,
     }
     
     patience = 0
