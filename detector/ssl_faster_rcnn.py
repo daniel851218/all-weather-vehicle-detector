@@ -2,6 +2,8 @@ import os
 import torch
 import torch.nn as nn
 
+from torchvision import ops
+from common_module.outlier_filter import filter_outlier
 from config.train_test_cfg import cfg
 from common_module.resnet import ResNet50_FPN
 from common_module.rpn import RPN
@@ -270,11 +272,11 @@ class Semi_Supervised_Faster_RCNN_Stage_2(nn.Module):
         
         self.load_model(cfg.pre_train_model_path, cfg.pre_train_model_epoch)
 
-    def forward(self, bdd_imgs, bdd_targets, driving_video_imgs_1, driving_video_imgs_2, driving_video_targets):
+    def forward(self, bdd_imgs, bdd_targets, driving_video_imgs_1, driving_video_imgs_2, driving_video_targets, ratio, delta):
         losses = {}
         if self.training:
             sup_loss = self.forward_supervised(bdd_imgs, bdd_targets)
-            unsup_loss = self.forward_unsupervised(driving_video_imgs_1, driving_video_imgs_2, driving_video_targets)
+            unsup_loss = self.forward_unsupervised(driving_video_imgs_1, driving_video_imgs_2, driving_video_targets, ratio, delta)
 
             losses["loss_sup"] = sup_loss
             losses["loss_unsup"] = unsup_loss
@@ -304,10 +306,10 @@ class Semi_Supervised_Faster_RCNN_Stage_2(nn.Module):
 
         return losses
     
-    def forward_unsupervised(self, imgs_1, imgs_2, targets):
+    def forward_unsupervised(self, imgs_1, imgs_2, targets, ratio, delta):
         empty_targets = ({},) * imgs_1.shape[0]
 
-        # Use teacher model generates pseudo-label
+        # Use teacher model generates pseudo-labels
         self.teacher_backbone.eval()
         self.teacher_rpn.eval()
         self.teacher_roi_align.eval()
@@ -317,7 +319,24 @@ class Semi_Supervised_Faster_RCNN_Stage_2(nn.Module):
         proposals_t, _ = self.teacher_rpn(imgs_1, features_t, empty_targets)
         instance_features_t, labels_t, reg_targets_t, proposals_t = self.teacher_roi_align(features_t, proposals_t, [(cfg.img_h, cfg.img_w)]*len(proposals_t), empty_targets)
         _, _, _, _, detection_t = self.teacher_detect_head(instance_features_t, labels_t, reg_targets_t, proposals_t)
-        
+
+        # filter low quality pseudo-labels
+        for i, d in enumerate(detection_t):
+            low_conf_filter = d["scores"] > cfg.test_conf_thresh
+            d["boxes"] = d["boxes"][low_conf_filter]
+            d["labels"] = d["labels"][low_conf_filter]
+            d["scores"] = d["scores"][low_conf_filter]
+
+            nms_filter = ops.batched_nms(d["boxes"], d["scores"], d["labels"], cfg.test_iou_thresh)
+            d["boxes"] = d["boxes"][nms_filter]
+            d["labels"] = d["labels"][nms_filter]
+            d["scores"] = d["scores"][nms_filter]
+            
+            d["boxes"], d["labels"], d["scores"] = filter_outlier(d["boxes"], d["labels"], d["scores"], ratio[i], delta[i])
+
+            d["boxes"], d["labels"] = d["boxes"].to(cfg.device), d["labels"].to(cfg.device)
+            del(d["scores"])
+
         # train student model
         features_s = self.student_backbone(imgs_2)
         proposals_s, rpn_losses = self.student_rpn(imgs_2, features_s, detection_t)
