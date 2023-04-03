@@ -330,4 +330,4 @@ class Mixed_Real_Dataset(Base_Dataset):
             "weather_class": driving_video_weather_class
         }
         
-        return bdd_img, bdd_target, driving_video_img_1, driving_video_img_2, driving_video_target
+        return bdd_img, bdd_target, driving_video_img_1, driving_video_img_2, driving_video_target, driving_video_ratio, driving_video_delta
