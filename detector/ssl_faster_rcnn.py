@@ -281,7 +281,7 @@ class Semi_Supervised_Faster_RCNN_Stage_2(nn.Module):
             losses["loss_sup"] = sup_loss
             losses["loss_unsup"] = unsup_loss
             losses["loss_total"] = sup_loss["loss_rpn_score"] + sup_loss["loss_rpn_box_reg"] + sup_loss["loss_roi_cls"] + sup_loss["loss_roi_box_reg"] + \
-                                   cfg.lambda_unsup * (unsup_loss["loss_rpn_score"] + unsup_loss["loss_roi_cls"]) + \
+                                   cfg.lambda_unsup * (unsup_loss["loss_rpn_score"] + unsup_loss["loss_rpn_box_reg"] + unsup_loss["loss_roi_cls"] + unsup_loss["loss_roi_box_reg"]) + \
                                    cfg.lambda_adv_daytime * (unsup_loss["loss_daytime_img_score"] + unsup_loss["loss_daytime_ins_score"] + unsup_loss["loss_daytime_consistency"]) + \
                                    cfg.lambda_adv_weather * (unsup_loss["loss_weather_img_score"] + unsup_loss["loss_weather_ins_score"] + unsup_loss["loss_weather_consistency"])
             
@@ -347,8 +347,6 @@ class Semi_Supervised_Faster_RCNN_Stage_2(nn.Module):
         weather_adv_losses = self.student_weather_classifier(features_s, instance_features_s, targets)
 
         losses = {}
-        del rpn_losses["loss_rpn_box_reg"]
-        del roi_losses["loss_roi_box_reg"]
         losses.update(rpn_losses)
         losses.update(roi_losses)
         losses.update(daytime_adv_losses)
@@ -377,7 +375,7 @@ class Semi_Supervised_Faster_RCNN_Stage_2(nn.Module):
         backbone_weight = os.path.join(model_dir, f"{epoch}_backbone.pth")
         rpn_weight = os.path.join(model_dir, f"{epoch}_rpn.pth")
         roi_weight = os.path.join(model_dir, f"{epoch}_roi.pth")
-        detect_head_weight = os.path.join(model_dir, f"{epoch}_auxiliary_detect_head.pth")
+        detect_head_weight = os.path.join(model_dir, f"{epoch}_detect_head.pth")
         daytime_classifier_weight = os.path.join(model_dir, f"{epoch}_daytime_classifier.pth")
         weather_classifier_weight = os.path.join(model_dir, f"{epoch}_weather_classifier.pth")
 
