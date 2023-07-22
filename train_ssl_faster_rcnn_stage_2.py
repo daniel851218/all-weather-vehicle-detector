@@ -53,10 +53,14 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
             driving_video_imgs_2, _ = to_CUDA(driving_video_imgs_2, {})
 
         loss_dict = model(bdd_imgs, bdd_targets, driving_video_imgs_1, driving_video_imgs_2, driving_video_targets, ratio, delta)
-        optimizer.zero_grad()
         loss_dict["loss_total"].backward()
-        optimizer.step()
-        update_weight_ema(model, epoch)
+
+        if ((count + 1) % cfg.grad_accumulate_step) == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+        
+        if ((count + 1) % cfg.step_ema) == 0:
+            update_weight_ema(model, epoch)
 
         for k in loss_dict["loss_sup"].keys():
             log_loss["loss_sup"][k].append(loss_dict["loss_sup"][k].item())
@@ -64,7 +68,7 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
         for k in loss_dict["loss_unsup"].keys():
             log_loss["loss_unsup"][k].append(loss_dict["loss_unsup"][k].item())
 
-        log_loss["loss_total"].append(loss_dict["loss_total"])
+        log_loss["loss_total"].append(loss_dict["loss_total"].item())
 
         pbar.set_description(Fore.BLUE + "loss_total: " + Fore.RESET + f"{loss_dict['loss_total']:2.3f}")
         iters = epoch * iter_per_batch + count
@@ -77,7 +81,9 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
             avg_loss_sup_roi_box_reg = sum(log_loss["loss_sup"]["loss_roi_box_reg"]) / len(log_loss["loss_sup"]["loss_roi_box_reg"])
 
             avg_loss_unsup_rpn_score = sum(log_loss["loss_unsup"]["loss_rpn_score"]) / len(log_loss["loss_unsup"]["loss_rpn_score"])
+            avg_loss_unsup_rpn_box_reg = sum(log_loss["loss_unsup"]["loss_rpn_box_reg"]) / len(log_loss["loss_unsup"]["loss_rpn_box_reg"])
             avg_loss_unsup_roi_cls = sum(log_loss["loss_unsup"]["loss_roi_cls"]) / len(log_loss["loss_unsup"]["loss_roi_cls"])
+            avg_loss_unsup_roi_box_reg = sum(log_loss["loss_unsup"]["loss_roi_box_reg"]) / len(log_loss["loss_unsup"]["loss_roi_box_reg"])
 
             avg_loss_daytime = sum(log_loss["loss_unsup"]["loss_daytime_img_score"]) / len(log_loss["loss_unsup"]["loss_daytime_img_score"]) + \
                                sum(log_loss["loss_unsup"]["loss_daytime_ins_score"]) / len(log_loss["loss_unsup"]["loss_daytime_ins_score"]) + \
@@ -95,7 +101,9 @@ def train_one_epoch(model, optimizer, data_loader, writer, epoch, iter_per_batch
             writer.add_scalar("loss_sup_roi_box_reg", avg_loss_sup_roi_box_reg, iters)
 
             writer.add_scalar("loss_unsup_rpn_score", avg_loss_unsup_rpn_score, iters)
+            writer.add_scalar("loss_unsup_rpn_box_reg", avg_loss_unsup_rpn_box_reg, iters)
             writer.add_scalar("loss_unsup_roi_cls", avg_loss_unsup_roi_cls, iters)
+            writer.add_scalar("loss_unsup_roi_box_reg", avg_loss_unsup_roi_box_reg, iters)
 
             writer.add_scalar("loss_daytime", avg_loss_daytime, iters)
             writer.add_scalar("loss_weather", avg_loss_weather, iters)
@@ -115,7 +123,7 @@ def evaluate(model, data_loader):
             if cfg.device == "cuda" and torch.cuda.is_available():
                 imgs, targets = to_CUDA(imgs, targets)
 
-            detections = model(imgs, targets, None, None, None)
+            detections = model(imgs, targets, None, None, None, None, None)
 
             batch_class_TP_FP, batch_class_score, batch_class_num_gt = get_class_TP_FP(targets, detections, 0.5)
 
@@ -156,8 +164,8 @@ if __name__ == "__main__":
     obj_detector = Semi_Supervised_Faster_RCNN_Stage_2().to(cfg.device)
     
     optimizer = optim.SGD(obj_detector.parameters(), lr=cfg.lr, momentum=cfg.momentum, weight_decay=cfg.weight_decay)
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=cfg.lr_gamma, patience=cfg.lr_dec_step_size, min_lr=cfg.lr_min)
-
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=cfg.lr_gamma, patience=cfg.lr_dec_step_size, min_lr=cfg.lr_min, eps=1e-20)
+    
     # ============================= Training =============================
     print(Fore.GREEN + "Training ...\n" + "="*100 + Fore.RESET)
     best_mAP_50 = 0
@@ -171,7 +179,9 @@ if __name__ == "__main__":
 
     log_loss_unsup = {
         "loss_rpn_score": [],
+        "loss_rpn_box_reg": [],
         "loss_roi_cls": [],
+        "loss_roi_box_reg": [],
         "loss_daytime_img_score": [],
         "loss_daytime_ins_score": [],
         "loss_daytime_consistency": [],
