@@ -165,113 +165,6 @@ class BDD_Dataset(Base_Dataset):
 
 # ----------------------------------------------------------------------------------------------------
 
-class Driving_Video_Dataset(Base_Dataset):
-    def __init__(self):
-        super(Driving_Video_Dataset, self).__init__()
-        self.file_list = self.get_file_list(data_cfg.driving_video_txt_file)
-
-    def __len__(self):
-        return len(self.file_list)
-    
-    def __getitem__(self, idx):
-        img_file = self.file_list[idx].strip()
-
-        if not os.path.isfile(img_file):
-            raise ValueError(f"File does not exist.")
-        
-        img = Image.open(img_file)
-        img, ratio = self.resize_img(img, data_cfg.img_w, data_cfg.img_h)
-
-        img_aug_1 = self.img_aug_transform(img)
-        img_aug_1 = self.normalize(img_aug_1)
-        img_aug_1, delta = self.pad_image(img_aug_1, data_cfg.img_w, data_cfg.img_h)
-
-        img_aug_2 = self.img_aug_transform(img)
-        img_aug_2 = self.normalize(img_aug_2)
-        img_aug_2, delta = self.pad_image(img_aug_2, data_cfg.img_w, data_cfg.img_h)
-        
-        daytime_class = 1 if "daytime" in img_file.split(os.sep)[-3].split("_") else 0
-        weather_class = 1 if "normal" in img_file.split(os.sep)[-3].split("_") else 0
-        daytime_class = torch.tensor((daytime_class))
-        weather_class = torch.tensor((weather_class))
-
-        target = {
-            "daytime_class": daytime_class, 
-            "weather_class": weather_class, 
-            }
-        
-        return img_aug_1, img_aug_2, target
-
-# ----------------------------------------------------------------------------------------------------
-
-class Mixed_Labeled_Dataset(Base_Dataset):
-    def __init__(self):
-        super(Mixed_Labeled_Dataset, self).__init__()
-        self.shift_file_list = self.get_file_list(data_cfg.shift_txt_file_train)
-        self.bdd_file_list = self.get_file_list(data_cfg.bdd_txt_file_train)
-
-    def __len__(self):
-        return min(len(self.shift_file_list), len(self.bdd_file_list))
-    
-    def __getitem__(self, idx):
-        shift_img_file = self.shift_file_list[idx].strip()
-        shift_json_file = shift_img_file.replace("jpg", "json")
-        if not (os.path.isfile(shift_img_file) and os.path.isfile(shift_json_file)):
-            raise ValueError(f"File does not exist.")
-        
-        with open(shift_json_file, "r") as file:
-            shift_json_data = json.loads(file.read())
-
-        bdd_img_file = self.bdd_file_list[idx].strip()
-        bdd_json_file = bdd_img_file.replace("jpg", "json")
-        if not (os.path.isfile(bdd_img_file) and os.path.isfile(bdd_json_file)):
-            raise ValueError(f"File does not exist.")
-        
-        with open(bdd_json_file, "r") as file:
-            bdd_json_data = json.loads(file.read())
-        
-        shift_img = Image.open(shift_img_file)
-        shift_img, shift_ratio = self.resize_img(shift_img, data_cfg.img_w, data_cfg.img_h)
-        shift_img = self.img_aug_transform(shift_img)
-        shift_img = self.normalize(shift_img)
-        shift_img, shift_delta = self.pad_image(shift_img, data_cfg.img_w, data_cfg.img_h)
-        shift_boxes, shift_obj_classes = self.resize_bbx(shift_json_data, shift_ratio, shift_delta)
-
-        bdd_img = Image.open(bdd_img_file)
-        bdd_img, bdd_ratio = self.resize_img(bdd_img, data_cfg.img_w, data_cfg.img_h)
-        bdd_img = self.img_aug_transform(bdd_img)
-        bdd_img = self.normalize(bdd_img)
-        bdd_img, bdd_delta = self.pad_image(bdd_img, data_cfg.img_w, data_cfg.img_h)
-        bdd_boxes, bdd_obj_classes = self.resize_bbx(bdd_json_data, bdd_ratio, bdd_delta)
-
-        shift_daytime_class = 1 if "daytime" in shift_img_file.split(os.sep)[-3].split("_") else 0
-        shift_weather_class = 1 if "normal" in shift_img_file.split(os.sep)[-3].split("_") else 0
-        shift_daytime_class = torch.tensor((shift_daytime_class))
-        shift_weather_class = torch.tensor((shift_weather_class))
-
-        bdd_daytime_class = 1 if "daytime" in bdd_img_file.split(os.sep)[-2].split("_") else 0
-        bdd_weather_class = 1 if "normal" in bdd_img_file.split(os.sep)[-2].split("_") else 0
-        bdd_daytime_class = torch.tensor((bdd_daytime_class))
-        bdd_weather_class = torch.tensor((bdd_weather_class))
-
-        shift_target = {
-            "boxes": shift_boxes, 
-            "labels": shift_obj_classes, 
-            "daytime_class": shift_daytime_class, 
-            "weather_class": shift_weather_class
-            }
-        
-        bdd_target = {
-            "boxes": bdd_boxes, 
-            "labels": bdd_obj_classes, 
-            "daytime_class": bdd_daytime_class, 
-            "weather_class": bdd_weather_class
-            }
-
-        return shift_img, shift_target, bdd_img, bdd_target
-
-# ----------------------------------------------------------------------------------------------------
-
 class Mixed_Real_Dataset(Base_Dataset):
     def __init__(self):
         super(Mixed_Real_Dataset, self).__init__()
@@ -279,13 +172,10 @@ class Mixed_Real_Dataset(Base_Dataset):
         self.driving_video_file_list = self.get_file_list(data_cfg.driving_video_txt_file)
 
     def __len__(self):
-        return max(len(self.bdd_file_list), len(self.driving_video_file_list))
+        return min(len(self.bdd_file_list), len(self.driving_video_file_list))
     
     def __getitem__(self, idx):
-        bdd_idx = torch.randint(0, len(self.bdd_file_list), (1,)) if idx > (len(self.bdd_file_list)-1) else idx
-        driving_video_idx = torch.randint(0, len(self.driving_video_file_list), (1,)) if idx > (len(self.driving_video_file_list)-1) else idx
-        
-        bdd_img_file = self.bdd_file_list[bdd_idx].strip()
+        bdd_img_file = self.bdd_file_list[idx].strip()
         bdd_json_file = bdd_img_file.replace("jpg", "json")
         if not os.path.isfile(bdd_img_file) or not os.path.isfile(bdd_json_file):
             raise ValueError(f"File does not exist.")
@@ -293,7 +183,7 @@ class Mixed_Real_Dataset(Base_Dataset):
         with open(bdd_json_file, "r") as file:
             bdd_json_data = json.loads(file.read())
 
-        driving_video_img_file = self.driving_video_file_list[driving_video_idx].strip()
+        driving_video_img_file = self.driving_video_file_list[idx].strip()
         if not os.path.isfile(driving_video_img_file):
             raise ValueError(f"File does not exist.")
 
