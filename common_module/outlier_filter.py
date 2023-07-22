@@ -1,56 +1,6 @@
 import torch
 from config.train_test_cfg import cfg
 
-obj_filter_thresh = [
-    # Car
-    {
-        "width": 24.0,
-        "height": 20.0,
-        "ratio": [1.0, 1.638],
-        "area": 483.0
-    },
-
-    # Truck
-    {
-        "width": 39.0,
-        "height": 29.0,
-        "ratio": [0.9666666666666668, 1.85],
-        "area": 1110.0
-    },
-
-    # Pedestrian
-    {
-        "width": 12.0,
-        "height": 31.0,
-        "ratio": [0.3333, 0.4783],
-        "area": 364.0
-    },
-
-    # Bus
-    {
-        "width": 40.0,
-        "height": 29.0,
-        "ratio": [0.9841, 1.9231],
-        "area": 1113.0
-    },
-
-    # Bicycle
-    {
-        "width": 20.0,
-        "height": 32.0,
-        "ratio": [0.4545, 0.9574],
-        "area": 648.0
-    },
-
-    # Motorcycle
-    {
-        "width": 20.0,
-        "height": 27.0,
-        "ratio": [0.5060, 1.1471],
-        "area": 528.0
-    },
-]
-
 def filter_outlier(boxes, labels, scores, restored_ratio, restored_delta):
     restore_ratio = 1. / restored_ratio
     delta_x, delta_y = restored_delta
@@ -59,7 +9,7 @@ def filter_outlier(boxes, labels, scores, restored_ratio, restored_delta):
     filtered_labels = []
     filtered_scores = []
 
-    for i in range(len(obj_filter_thresh)):
+    for i in range(len(cfg.obj_filter_thresh)):
         score = scores[labels == (i+1)]
 
         x1 = boxes[labels == (i+1)][:, 0]
@@ -77,11 +27,11 @@ def filter_outlier(boxes, labels, scores, restored_ratio, restored_delta):
         ratio = width / height
         area = width * height
 
-        width_thresh = obj_filter_thresh[i]["width"]
-        height_thresh = obj_filter_thresh[i]["height"]
-        ratio_thresh_Q1 = obj_filter_thresh[i]["ratio"][0]
-        ratio_thresh_Q3 = obj_filter_thresh[i]["ratio"][0]
-        area_thresh = obj_filter_thresh[i]["area"]
+        width_thresh = cfg.obj_filter_thresh[i]["width"]
+        height_thresh = cfg.obj_filter_thresh[i]["height"]
+        ratio_thresh_Q1 = cfg.obj_filter_thresh[i]["ratio"][0]
+        ratio_thresh_Q3 = cfg.obj_filter_thresh[i]["ratio"][0]
+        area_thresh = cfg.obj_filter_thresh[i]["area"]
 
         width_mask = width < width_thresh
         height_mask = height < height_thresh
