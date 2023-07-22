@@ -99,11 +99,13 @@ def restore_bbox_size(box, ratio, delta):
 
 if __name__ == "__main__":
     if IS_BDD:
+        print("Visualize BDD100K Dataset\n")
         daytime_normal_list = glob(os.path.join(DAYTIME_NORMAL_DIR, "*.jpg"))
         daytime_rainy_list = glob(os.path.join(DAYTIME_RAINY_DIR, "*.jpg"))
         night_normal_list = glob(os.path.join(NIGHT_NORMAL_DIR, "*.jpg"))
         night_rainy_list = glob(os.path.join(NIGHT_RAINY_DIR, "*.jpg"))
     else:
+        print("Visualize SHIFT Dataset\n")
         daytime_normal_list = glob(os.path.join(DAYTIME_NORMAL_DIR, "*", "*.jpg"), recursive=True)
         daytime_rainy_list = glob(os.path.join(DAYTIME_RAINY_DIR, "*", "*.jpg"), recursive=True)
         night_normal_list = glob(os.path.join(NIGHT_NORMAL_DIR, "*", "*.jpg"), recursive=True)
