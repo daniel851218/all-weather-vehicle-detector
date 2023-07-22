@@ -79,7 +79,7 @@ class Semi_Supervised_Adversarial_Faster_RCNN(nn.Module):
 
         # filter low quality pseudo-labels
         for i, d in enumerate(detection_t):
-            low_conf_filter = d["scores"] > cfg.test_conf_thresh
+            low_conf_filter = d["scores"] > cfg.test_weak_conf_thresh
             d["boxes"] = d["boxes"][low_conf_filter]
             d["labels"] = d["labels"][low_conf_filter]
             d["scores"] = d["scores"][low_conf_filter]

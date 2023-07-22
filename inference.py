@@ -106,7 +106,7 @@ if __name__ == "__main__":
             pred_labels = detections["labels"]
             pred_scores = detections["scores"]
 
-            low_conf_filter = pred_scores > cfg.test_conf_thresh
+            low_conf_filter = pred_scores > cfg.test_weak_conf_thresh
             pred_bboxes = pred_bboxes[low_conf_filter]
             pred_labels = pred_labels[low_conf_filter]
             pred_scores = pred_scores[low_conf_filter]
