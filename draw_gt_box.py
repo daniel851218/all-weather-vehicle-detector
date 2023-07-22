@@ -8,6 +8,9 @@ from config.train_test_cfg import cfg
 if __name__ == "__main__":
     img_file_list = glob(os.path.join(cfg.test_imgs_dir, "*.jpg"))
 
+    if not os.path.isdir(cfg.result_imgs_dir):
+            os.mkdir(cfg.result_imgs_dir)
+
     for img_file in img_file_list:
         json_file = img_file.replace("jpg", "json")
 

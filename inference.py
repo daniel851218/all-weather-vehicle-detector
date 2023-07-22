@@ -79,6 +79,9 @@ def time_sync():
 
 if __name__ == "__main__":
     img_file_list = glob(os.path.join(cfg.test_imgs_dir, "*.jpg"))
+
+    if not os.path.isdir(cfg.result_imgs_dir):
+            os.mkdir(cfg.result_imgs_dir)
     
     obj_detector = Faster_RCNN().to(cfg.device)
     obj_detector.load_model(cfg.pre_train_model_path, cfg.pre_train_model_epoch)
