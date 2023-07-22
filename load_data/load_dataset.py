@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 from load_data.img_aug import ImgAugTransform
+from config.train_test_cfg import cfg
 from config.load_data_cfg import data_cfg
 
 class Base_Dataset(Dataset):
@@ -100,10 +101,10 @@ class SHIFT_Dataset(Base_Dataset):
             json_data = json.loads(file.read())
 
         img = Image.open(img_file)
-        img, ratio = self.resize_img(img, data_cfg.img_w, data_cfg.img_h)
+        img, ratio = self.resize_img(img, cfg.img_w, cfg.img_h)
         img = self.img_aug_transform(img) if self.is_train else self.to_tensor(img)
         img = self.normalize(img)
-        img, delta = self.pad_image(img, data_cfg.img_w, data_cfg.img_h)
+        img, delta = self.pad_image(img, cfg.img_w, cfg.img_h)
         boxes, obj_classes = self.resize_bbx(json_data, ratio, delta)
 
         daytime_class = 1 if "daytime" in img_file.split(os.sep)[-3].split("_") else 0
@@ -143,10 +144,10 @@ class BDD_Dataset(Base_Dataset):
             json_data = json.loads(file.read())
 
         img = Image.open(img_file)
-        img, ratio = self.resize_img(img, data_cfg.img_w, data_cfg.img_h)
+        img, ratio = self.resize_img(img, cfg.img_w, cfg.img_h)
         img = self.img_aug_transform(img) if self.is_train else self.to_tensor(img)
         img = self.normalize(img)
-        img, delta = self.pad_image(img, data_cfg.img_w, data_cfg.img_h)
+        img, delta = self.pad_image(img, cfg.img_w, cfg.img_h)
         boxes, obj_classes = self.resize_bbx(json_data, ratio, delta)
 
         daytime_class = 1 if "daytime" in img_file.split(os.sep)[-2].split("_") else 0
@@ -188,22 +189,22 @@ class Mixed_Real_Dataset(Base_Dataset):
             raise ValueError(f"File does not exist.")
 
         bdd_img = Image.open(bdd_img_file)
-        bdd_img, bdd_ratio = self.resize_img(bdd_img, data_cfg.img_w, data_cfg.img_h)
+        bdd_img, bdd_ratio = self.resize_img(bdd_img, cfg.img_w, cfg.img_h)
         bdd_img = self.img_aug_transform(bdd_img)
         bdd_img = self.normalize(bdd_img)
-        bdd_img, bdd_delta = self.pad_image(bdd_img, data_cfg.img_w, data_cfg.img_h)
+        bdd_img, bdd_delta = self.pad_image(bdd_img, cfg.img_w, cfg.img_h)
         bdd_boxes, bdd_obj_classes = self.resize_bbx(bdd_json_data, bdd_ratio, bdd_delta)
         
         driving_video_img = Image.open(driving_video_img_file)
-        driving_video_img, driving_video_ratio = self.resize_img(driving_video_img, data_cfg.img_w, data_cfg.img_h)
+        driving_video_img, driving_video_ratio = self.resize_img(driving_video_img, cfg.img_w, cfg.img_h)
 
         driving_video_img_1 = self.img_aug_transform(driving_video_img)
         driving_video_img_1 = self.normalize(driving_video_img_1)
-        driving_video_img_1, driving_video_delta = self.pad_image(driving_video_img_1, data_cfg.img_w, data_cfg.img_h)
+        driving_video_img_1, driving_video_delta = self.pad_image(driving_video_img_1, cfg.img_w, cfg.img_h)
 
         driving_video_img_2 = self.img_aug_transform(driving_video_img)
         driving_video_img_2 = self.normalize(driving_video_img_2)
-        driving_video_img_2, driving_video_delta = self.pad_image(driving_video_img_2, data_cfg.img_w, data_cfg.img_h)
+        driving_video_img_2, driving_video_delta = self.pad_image(driving_video_img_2, cfg.img_w, cfg.img_h)
 
         driving_video_daytime_class = 1 if "daytime" in driving_video_img_file.split(os.sep)[-3].split("_") else 0
         driving_video_weather_class = 1 if "normal" in driving_video_img_file.split(os.sep)[-3].split("_") else 0
