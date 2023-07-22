@@ -9,6 +9,7 @@ from torchvision import transforms, ops
 
 from detector.faster_rcnn import Faster_RCNN
 from config.train_test_cfg import cfg
+from common_module.pseudo_label_filter import filter_outlier
 
 def resize_img(img):
     '''
@@ -111,14 +112,20 @@ if __name__ == "__main__":
             t4 = time_sync()
             time_nms.append(t4 - t3)
 
-            pred_bboxes = pred_bboxes[nms_filter].tolist()
-            pred_labels = pred_labels[nms_filter].tolist()
-            pred_scores = pred_scores[nms_filter].tolist()
+            if cfg.filter_enable:
+                pred_bboxes, pred_labels, pred_scores = filter_outlier(pred_bboxes[nms_filter], pred_labels[nms_filter], pred_scores[nms_filter], 1, (0, 0))
+                pred_bboxes = pred_bboxes.tolist()
+                pred_labels = pred_labels.tolist()
+                pred_scores = pred_scores.tolist()
+            else:
+                pred_bboxes = pred_bboxes[nms_filter].tolist()
+                pred_labels = pred_labels[nms_filter].tolist()
+                pred_scores = pred_scores[nms_filter].tolist()
 
             for box, lbl, conf in zip(pred_bboxes, pred_labels, pred_scores):
                 x1, y1, x2, y2 = restore_bbox_size(box, ratio, delta)
                 draw_rectangle = ImageDraw.ImageDraw(img_PIL)
-                draw_rectangle.rectangle(((x1, y1), (x2, y2)), fill=None, outline=cfg.obj_color[lbl], width=1)
+                draw_rectangle.rectangle(((x1, y1), (x2, y2)), fill=None, outline=cfg.obj_color[lbl], width=2)
 
             img_PIL.save(os.path.join(cfg.result_imgs_dir, img_file.split(os.sep)[-1]))
 
