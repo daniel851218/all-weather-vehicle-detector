@@ -1,3 +1,4 @@
+# python -m tools.draw_gt_box
 import os
 import json
 
