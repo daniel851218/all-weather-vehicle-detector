@@ -92,4 +92,16 @@ Considering that the number of images belonging to certain weather conditions in
 - Draw Ground Truth：run `python -m tools.draw_gt_box`
 - Show t-SNE result：run `python -m tools.t_sne_before` and `python -m tools.t_sne_after`
 
+---
+
 <!---------------------------------------------------------------------------------------------------->
+
+## Model Weights
+
+- Faster R-CNN
+  - SHIFT：[download](https://drive.google.com/drive/folders/1K7K5xtNVBjS8BnflnYhxO6f85-M13huX?usp=drive_link)
+  - BDD100K：[download](https://drive.google.com/drive/folders/1P5qD3l20osYu6LNJPX2bPTLMRvwZP9hm?usp=drive_link)
+- Adversarial Faster R-CNN
+  - SHIFT：[download](https://drive.google.com/drive/folders/1ZzDF7fCA-5kxNkX8H8ENr9Wl1qETsF6D?usp=drive_link)
+  - BDD100K：[download](https://drive.google.com/drive/folders/1MHpgMAUbedmkHMUGHH1nxUvscu8SAnlj?usp=drive_link)
+- Semi-Supervised Adversarial Faster R-CNN：[download](https://drive.google.com/drive/folders/1OmXHI8grZGsEzSZs7qjLSJWdxtLaHtSi?usp=drive_link)
