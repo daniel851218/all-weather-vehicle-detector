@@ -37,7 +37,6 @@ Considering that the number of images belonging to certain weather conditions in
 ---
 
 <!---------------------------------------------------------------------------------------------------->
-<style> table{ margin: auto; } </style>
 
 ## Dataset
 
@@ -47,50 +46,12 @@ Considering that the number of images belonging to certain weather conditions in
 - Be used to do the experiment of Adversarial Learning.
 - According to the following table, classify the images into **Daytime Normal**, **Daytime Rainy**, **Night Normal** and **Night Rainy**.
 
-<style type="text/css">
-.tg  {border-collapse:collapse;border-color:#9ABAD9;border-spacing:0;}
-.tg td{background-color:#EBF5FF;border-color:#9ABAD9;border-style:solid;border-width:1px;color:#444;
-  font-family:Arial, sans-serif;font-size:14px;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{background-color:#409cff;border-color:#9ABAD9;border-style:solid;border-width:1px;color:#fff;
-  font-family:Arial, sans-serif;font-size:14px;font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-f1yk{font-family:"Times New Roman", Times, serif !important;text-align:center;vertical-align:top}
-</style>
-<table class="tg">
-<thead>
-  <tr>
-    <th class="tg-f1yk">DAYTIME</th>
-    <th class="tg-f1yk">NIGHT</th>
-    <th class="tg-f1yk">NORMAL</th>
-    <th class="tg-f1yk">RAINY</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td class="tg-f1yk">morning/afternoon</td>
-    <td class="tg-f1yk">sunrise/sunset</td>
-    <td class="tg-f1yk">clear</td>
-    <td class="tg-f1yk">small rain</td>
-  </tr>
-  <tr>
-    <td class="tg-f1yk">noon</td>
-    <td class="tg-f1yk">night</td>
-    <td class="tg-f1yk">slight cloudy</td>
-    <td class="tg-f1yk">mid rain</td>
-  </tr>
-  <tr>
-    <td class="tg-f1yk">dawn/dusk</td>
-    <td class="tg-f1yk">dark night</td>
-    <td class="tg-f1yk">partial cloudy</td>
-    <td class="tg-f1yk">heavy rain</td>
-  </tr>
-  <tr>
-    <td class="tg-f1yk"></td>
-    <td class="tg-f1yk"></td>
-    <td class="tg-f1yk">overcast</td>
-    <td class="tg-f1yk"></td>
-  </tr>
-</tbody>
-</table>
+|      DAYTIME      |      NIGHT     |     NORMAL     |    RAINY   |
+|:-----------------:|:--------------:|:--------------:|:----------:|
+| morning/afternoon | sunrise/sunset |      clear     | small rain |
+|        noon       |      night     |  slight cloudy |  mid rain  |
+|     dawn/dusk     |   dark night   | partial cloudy | heavy rain |
+|                   |                |    overcast    |            |
 
 ### BDD100K Dataset
 - [BDD100K: A Diverse Driving Dataset for Heterogeneous Multitask Learning](https://www.vis.xyz/bdd100k/)
@@ -98,36 +59,11 @@ Considering that the number of images belonging to certain weather conditions in
 - Be used to do the experiment of Adversarial Learning and Semi-Supervised Learning.
 - According to the following table, classify the images into **Daytime Normal**, **Daytime Rainy**, **Night Normal** and **Night Rainy**.
 
-<table class="tg">
-<thead>
-  <tr>
-    <th class="tg-f1yk">DAYTIME</th>
-    <th class="tg-f1yk">NIGHT</th>
-    <th class="tg-f1yk">NORMAL</th>
-    <th class="tg-f1yk">RAINY</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td class="tg-f1yk">daytime</td>
-    <td class="tg-f1yk">night</td>
-    <td class="tg-f1yk">clear</td>
-    <td class="tg-f1yk">rainy</td>
-  </tr>
-  <tr>
-    <td class="tg-f1yk">dawn/dusk</td>
-    <td class="tg-f1yk"></td>
-    <td class="tg-f1yk">overcast</td>
-    <td class="tg-f1yk"></td>
-  </tr>
-  <tr>
-    <td class="tg-f1yk"></td>
-    <td class="tg-f1yk"></td>
-    <td class="tg-f1yk">partly cloudy</td>
-    <td class="tg-f1yk"></td>
-  </tr>
-</tbody>
-</table>
+|  DAYTIME  | NIGHT |     NORMAL    | RAINY |
+|:---------:|:-----:|:-------------:|:-----:|
+|  daytime  | night |     clear     | rainy |
+| dawn/dusk |       |    overcast   |       |
+|           |       | partly cloudy |       |
 
 ### Private Dataset
 - Consist of **real** images which are collected from YouTube and filmed using GoPro.
